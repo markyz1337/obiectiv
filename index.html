@@ -544,7 +544,8 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
     <input type="hidden" id="tr-type">
     <div style="font-size:12px;color:var(--dim);margin-bottom:14px;">Selectează taburile în care vrei să suprascrii aceste date. Ce e deja acolo va fi șters și înlocuit.</div>
     <div class="fmodal-fields" id="transfer-targets"></div>
-    <div class="fmodal-actions"><button class="fbtn fbtn-ghost" onclick="closeModal('mo-transfer')">Anulează</button><button class="fbtn fbtn-blue" onclick="doTransfer()">Transferă</button></div>
+    <div class="fmodal-actions"><button class="fbtn fbtn-ghost" onclick="closeModal('mo-transfer')">Anulează</button><button class="fbtn fbtn-blue" id="btn-do-transfer" onclick="doTransfer()">Transferă</button></div>
+
   </div>
 </div>
 
@@ -959,15 +960,18 @@ async function doTransfer(){
   const checked=[...document.querySelectorAll('.tr-target-cb:checked')].map(cb=>cb.value);
   if(!checked.length){toast('⚠️ Selectează cel puțin un tab','err');return;}
   transferInProgress=true;
+  document.getElementById('btn-do-transfer').disabled=true;
   toast('⏳ Se transferă...');
+
   try{
     for(const targetId of checked){
       if(type==='salary')await transferSalaryTo(targetId);
       else await transferWalletTo(targetId);
     }
-  }catch(e){toast('Eroare la transfer: '+e.message,'err');transferInProgress=false;return;}
+  }catch(e){toast('Eroare la transfer: '+e.message,'err');transferInProgress=false;document.getElementById('btn-do-transfer').disabled=false;return;}
   transferInProgress=false;
   closeModal('mo-transfer');
+
   toast(`✅ Transferat în ${checked.length} tab${checked.length>1?'uri':''}`);
 }
 
