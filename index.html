@@ -970,9 +970,10 @@ async function doTransfer(){
     }
   }catch(e){toast('Eroare la transfer: '+e.message,'err');transferInProgress=false;document.getElementById('btn-do-transfer').disabled=false;return;}
   transferInProgress=false;
+  document.getElementById('btn-do-transfer').disabled=false;
   closeModal('mo-transfer');
-
   toast(`✅ Transferat în ${checked.length} tab${checked.length>1?'uri':''}`);
+
 }
 
 
