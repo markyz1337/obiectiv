@@ -53,7 +53,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .card:nth-child(2){animation-delay:.06s;}
 .card:nth-child(3){animation-delay:.12s;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(24px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
-.card-hdr{padding:15px 18px 13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.045);gap:8px;}
+.card-hdr{padding:15px 18px 13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.045);gap:6px;flex-wrap:nowrap;}
+.card-hdr-actions{display:flex;gap:5px;flex-shrink:0;margin-left:auto;}
+.card-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fbtn-icon-xs{padding:5px 8px;border-radius:9px;font-size:12px;line-height:1;}
+
+
 .card-title{display:flex;align-items:center;gap:9px;font-size:10px;font-weight:700;letter-spacing:1.8px;color:var(--dim);text-transform:uppercase;flex-shrink:0;}
 .dot{width:7px;height:7px;border-radius:50%;}
 .dot-blue{background:var(--blue);box-shadow:0 0 10px var(--blue);animation:pulse 2.5s infinite;}
@@ -93,7 +98,35 @@ select option{background:#0d1530;}
 .net-sum-val.val-pos{color:var(--green);}
 .net-sum-val.val-neg{color:var(--red);}
 
+.remain-table{width:100%;background:rgba(255,255,255,0.028);border:1px solid rgba(255,255,255,0.07);border-radius:14px;overflow:hidden;}
+.rt-row{display:grid;grid-template-columns:1fr 1fr 1fr;}
+.rt-row+.rt-row{border-top:1px solid rgba(255,255,255,0.045);}
+.rt-cell{padding:10px 8px;display:flex;align-items:center;justify-content:center;text-align:center;}
+.rt-head{background:rgba(255,255,255,0.03);}
+.rt-head .rt-cell{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);padding:8px;}
+.rt-lbl{justify-content:flex-start;text-align:left;font-weight:700;color:var(--dim);font-size:11px;padding-left:12px;}
+.rt-val{font-family:'Space Mono',monospace;font-weight:700;font-size:13px;color:var(--txt);}
+.rt-tfr .rt-lbl{color:var(--gold);}
+.rt-highlight{background:linear-gradient(135deg,rgba(62,207,142,0.14),rgba(62,207,142,0.04));border-radius:12px;box-shadow:inset 0 0 0 1px rgba(62,207,142,0.35);}
+.rt-highlight .rt-lbl{color:var(--green);font-weight:800;}
+.rt-highlight .rt-val{font-size:15px;}
+.rt-val.val-pos{color:var(--green);}
+.rt-val.val-neg{color:var(--red);}
+
+.rt-clickable{cursor:pointer;transition:background .15s;border-radius:8px;}
+.rt-clickable:active{background:rgba(79,142,247,0.12);}
+
+.calc-step{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
+.calc-step-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:6px;}
+.calc-step-formula{font-family:'Space Mono',monospace;font-size:12.5px;color:var(--txt);line-height:1.7;word-break:break-word;}
+.calc-step-formula .num{color:var(--blue-l);font-weight:700;}
+.calc-final{background:linear-gradient(145deg,rgba(245,200,66,0.1),rgba(245,200,66,0.03));border:1px solid rgba(245,200,66,0.25);border-radius:14px;padding:16px;text-align:center;margin-top:6px;}
+.calc-final-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(245,200,66,0.6);margin-bottom:6px;}
+.calc-final-val{font-family:'Space Mono',monospace;font-size:22px;font-weight:800;background:linear-gradient(135deg,#fff,#f5c842);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+
+
 .wallet-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.045);}
+
 .wallet-row:last-child{border-bottom:none;}
 .wallet-lbl{flex:1;font-size:13px;font-weight:600;color:var(--txt);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .wallet-val{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--gold);white-space:nowrap;}
@@ -179,7 +212,7 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
       <div class="hdr-inner">
         <div>
           <h1 onclick="openModal('mo-export')" style="cursor:pointer;">Italia</h1>
-          <div class="hdr-sub">Simulator cheltuieli — alege un tab</div>
+          <div class="hdr-sub">Simulator cheltuieli</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button id="global-lock-btn" class="fbtn fbtn-lock" onclick="handleLockClick()" style="margin:0;">Blocat</button>
@@ -210,7 +243,10 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
       <div class="card" id="card-salary">
         <div class="card-hdr">
           <div class="card-title"><span class="dot dot-blue"></span>Salariu & Venituri</div>
+          <button class="fbtn fbtn-ghost fbtn-icon fin-sensitive-action" onclick="openTransferModal('salary')" title="Transferă" aria-label="Transferă">🔀</button>
         </div>
+
+
         <div class="card-body">
           <div class="fmodal-fields">
             <div><div class="field-label">Salariu net lunar</div><div class="input-with-badge"><input type="number" id="sal-monthly" inputmode="decimal" step="0.01" placeholder="0" oninput="recalcAll()"><span class="input-curr-badge">€</span></div></div>
@@ -218,42 +254,82 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
               <div><div class="field-label">Al 13-lea salariu</div><div class="input-with-badge"><input type="number" id="sal-13" inputmode="decimal" step="0.01" placeholder="0" oninput="recalcAll()"><span class="input-curr-badge">€</span></div></div>
               <div><div class="field-label">Al 14-lea salariu</div><div class="input-with-badge"><input type="number" id="sal-14" inputmode="decimal" step="0.01" placeholder="0" oninput="recalcAll()"><span class="input-curr-badge">€</span></div></div>
             </div>
-            <div class="flex-row">
+            <div class="flex-row" style="align-items:flex-start;">
               <div><div class="field-label">Bonus Anul Nou</div><div class="input-with-badge"><input type="number" id="sal-bonus" inputmode="decimal" step="0.01" placeholder="0" oninput="recalcAll()"><span class="input-curr-badge">€</span></div></div>
-              <div><div class="field-label">TFR</div><div class="input-with-badge"><input type="number" id="sal-tfr" inputmode="decimal" step="0.01" placeholder="0" oninput="recalcAll()"><span class="input-curr-badge">€</span></div></div>
+              <div><div class="field-label">TFR brut / lună</div><div class="input-with-badge"><input type="number" id="sal-tfr" inputmode="decimal" step="0.01" placeholder="0" oninput="recalcAll()"><span class="input-curr-badge">€</span></div><div id="tfr-net-hint" style="font-size:9.5px;color:var(--dim);margin-top:6px;line-height:1.4;font-family:'Space Mono',monospace;">net: 0 €/lună · 0 €/an</div></div>
             </div>
+
             <button class="fbtn fbtn-blue fin-sensitive-action" style="width:100%;padding:13px;border-radius:16px;" onclick="saveSalary()">💾 Salvează salariul</button>
           </div>
         </div>
       </div>
+
+
 
       <div class="card" id="card-remain">
         <div class="card-hdr">
           <div class="card-title"><span class="dot dot-green"></span>Cât îmi rămâne</div>
         </div>
         <div class="card-body">
-          <div class="net-sum-block" style="margin-bottom:10px;">
-            <div class="net-sum-lbl">Rămas lunar (medie)</div>
-            <div class="net-sum-val" id="remain-monthly" style="font-size:20px;">0 €</div>
-          </div>
-          <div class="net-sums">
-            <div class="net-sum-block">
-              <div class="net-sum-lbl">Rămas anual — fără TFR</div>
-              <div class="net-sum-val" id="remain-annual-notfr">0 €</div>
+
+          <div class="section-sep" style="margin:0 0 10px;">💶 Salariul curat (fără cheltuieli)</div>
+          <div class="remain-table">
+            <div class="rt-row rt-head">
+              <div class="rt-cell rt-lbl"></div>
+              <div class="rt-cell">Lunar</div>
+              <div class="rt-cell">Anual</div>
             </div>
-            <div class="net-sum-block">
-              <div class="net-sum-lbl">Rămas anual — cu TFR</div>
-              <div class="net-sum-val" id="remain-annual-tfr">0 €</div>
-            </div>
+      <div class="rt-row">
+        <div class="rt-cell rt-lbl">Fără TFR</div>
+        <div class="rt-cell rt-val rt-clickable" id="income-monthly-notfr" onclick="openCalcDetail('income-monthly-notfr')">0 €</div>
+        <div class="rt-cell rt-val rt-clickable" id="income-annual-notfr" onclick="openCalcDetail('income-annual-notfr')">0 €</div>
+      </div>
+<div class="rt-row rt-tfr">
+        <div class="rt-cell rt-lbl">Cu TFR</div>
+        <div class="rt-cell rt-val rt-clickable" id="income-monthly-tfr" onclick="openCalcDetail('income-monthly-tfr')">0 €</div>
+        <div class="rt-cell rt-val rt-clickable" id="income-annual-tfr" onclick="openCalcDetail('income-annual-tfr')">0 €</div>
+      </div>
+
+
+
           </div>
+
+          <div class="section-sep" style="margin:20px 0 10px;">📊 Rămas (după cheltuieli)</div>
+          <div class="remain-table">
+            <div class="rt-row rt-head">
+              <div class="rt-cell rt-lbl"></div>
+              <div class="rt-cell">Lunar</div>
+              <div class="rt-cell">Anual</div>
+            </div>
+      <div class="rt-row">
+        <div class="rt-cell rt-lbl">Fără TFR</div>
+        <div class="rt-cell rt-val rt-clickable" id="remain-monthly-notfr" onclick="openCalcDetail('remain-monthly-notfr')">0 €</div>
+        <div class="rt-cell rt-val rt-clickable" id="remain-annual-notfr" onclick="openCalcDetail('remain-annual-notfr')">0 €</div>
+      </div>
+<div class="rt-row rt-tfr rt-highlight">
+        <div class="rt-cell rt-lbl">Cu TFR</div>
+        <div class="rt-cell rt-val rt-clickable" id="remain-monthly-tfr" onclick="openCalcDetail('remain-monthly-tfr')">0 €</div>
+        <div class="rt-cell rt-val rt-clickable" id="remain-annual-tfr" onclick="openCalcDetail('remain-annual-tfr')">0 €</div>
+      </div>
+
+
+          </div>
+
         </div>
       </div>
+
+
 
       <div class="card" id="card-wallet">
         <div class="card-hdr">
           <div class="card-title"><span class="dot dot-blue"></span>Portofelul Personal</div>
-          <button class="fbtn fbtn-blue fbtn-sm fin-sensitive-action" onclick="openModal('mo-wallet')">+ Adaugă</button>
+          <div class="card-hdr-actions">
+            <button class="fbtn fbtn-ghost fbtn-icon fin-sensitive-action" onclick="openTransferModal('wallet')" title="Transferă" aria-label="Transferă">🔀</button>
+            <button class="fbtn fbtn-blue fbtn-sm fin-sensitive-action" onclick="openModal('mo-wallet')">+ Adaugă</button>
+          </div>
         </div>
+
+
         <div class="card-body">
           <div class="loader" id="loader-wallet"><span class="spinner"></span>Se încarcă...</div>
           <div id="wallet-list"></div>
@@ -337,10 +413,12 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
   <div class="fmodal">
     <div class="fmodal-handle"></div>
     <div class="fmodal-title">💰 Sursă / Cont</div>
-    <div class="fmodal-fields">
+<div class="fmodal-fields">
       <div><div class="field-label">Etichetă</div><input type="text" id="w-label" placeholder="ex: 👝 Revolut"></div>
       <div><div class="field-label">Sumă</div><div class="input-with-badge"><input type="number" id="w-amount" placeholder="ex: 2500" inputmode="decimal" step="0.01"><span class="input-curr-badge">€</span></div></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);cursor:pointer;"><input type="checkbox" id="w-is-tfr" style="width:16px;height:16px;flex-shrink:0;">Este TFR brut (se aplică automat 83% net)</label>
     </div>
+
     <div class="fmodal-actions"><button class="fbtn fbtn-ghost" onclick="closeModal('mo-wallet')">Anulează</button><button class="fbtn fbtn-blue" onclick="saveWallet()">Adaugă</button></div>
   </div>
 </div>
@@ -353,10 +431,13 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
     <div class="fmodal-fields">
       <div><div class="field-label">Etichetă</div><input type="text" id="ew-label"></div>
       <div><div class="field-label">Sumă</div><div class="input-with-badge"><input type="number" id="ew-amount" inputmode="decimal" step="0.01"><span class="input-curr-badge">€</span></div></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);cursor:pointer;"><input type="checkbox" id="ew-is-tfr" style="width:16px;height:16px;flex-shrink:0;">Este TFR brut (se aplică automat 83% net)</label>
+      <div id="ew-net-hint" style="font-size:9px;color:var(--dim);font-family:'Space Mono',monospace;display:none;"></div>
     </div>
     <div class="fmodal-actions"><button class="fbtn fbtn-ghost" onclick="closeModal('mo-edit-wallet')">Anulează</button><button class="fbtn fbtn-blue" onclick="updateWallet()">Salvează</button></div>
   </div>
 </div>
+
 
 <div class="foverlay" id="mo-cat">
   <div class="fmodal">
@@ -429,7 +510,29 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
   </div>
 </div>
 
+<div class="foverlay" id="mo-transfer">
+  <div class="fmodal">
+    <div class="fmodal-handle"></div>
+    <div class="fmodal-title" id="transfer-title">🔀 Transferă date</div>
+    <input type="hidden" id="tr-type">
+    <div style="font-size:12px;color:var(--dim);margin-bottom:14px;">Selectează taburile în care vrei să suprascrii aceste date. Ce e deja acolo va fi șters și înlocuit.</div>
+    <div class="fmodal-fields" id="transfer-targets"></div>
+    <div class="fmodal-actions"><button class="fbtn fbtn-ghost" onclick="closeModal('mo-transfer')">Anulează</button><button class="fbtn fbtn-blue" onclick="doTransfer()">Transferă</button></div>
+  </div>
+</div>
+
+<div class="foverlay" id="mo-calc-detail">
+  <div class="fmodal">
+    <div class="fmodal-handle"></div>
+    <div class="fmodal-title" id="calc-detail-title">🧮 Cum s-a calculat</div>
+    <div id="calc-detail-body"></div>
+    <div class="fmodal-actions"><button class="fbtn fbtn-ghost" onclick="closeModal('mo-calc-detail')" style="width:100%;">Închide</button></div>
+  </div>
+</div>
+
 <button class="fab-refresh" id="fab-refresh" onclick="handleFabRefresh()" title="Actualizează datele" aria-label="Actualizează datele">
+
+
   <svg class="fab-svg" id="fab-svg" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
     <circle cx="11" cy="11" r="9.5"/>
     <path d="M 11 3.5 A 7.5 7.5 0 1 1 4.2 15" stroke-dasharray="none"/>
@@ -478,7 +581,7 @@ let openSubcatIds=new Set();
 
 function fmt(n){
   if(isNaN(n)||n===null)n=0;
-  return new Intl.NumberFormat('ro-RO',{style:'currency',currency:'EUR',minimumFractionDigits:0,maximumFractionDigits:2}).format(n);
+return new Intl.NumberFormat('ro-RO',{style:'currency',currency:'EUR',minimumFractionDigits:0,maximumFractionDigits:0}).format(n);
 }
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
@@ -489,7 +592,11 @@ function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){
   const el=document.getElementById(id);el.classList.remove('open');
   el.querySelectorAll('input[type="text"],input[type="number"]').forEach(i=>{i.value='';});
+  el.querySelectorAll('input[type="checkbox"]').forEach(i=>{i.checked=false;});
+  const hint=el.querySelector('#ew-net-hint');if(hint)hint.style.display='none';
 }
+
+
 document.querySelectorAll('.foverlay').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');});});
 function setLoader(id,show){const el=document.getElementById(id);if(el)el.classList.toggle('show',show);}
 
@@ -679,24 +786,48 @@ async function saveSalary(){
 async function saveWallet(){
   if(!currentScenario)return;
   const label=document.getElementById('w-label').value.trim();if(!label)return;
-  const amount=parseFloat(document.getElementById('w-amount').value)||0;
-  try{const[row]=await sb.post(TBL_WALLET,{scenario_id:currentScenario.id,label,amount});wallet.push(row);}
+  const rawInput=parseFloat(document.getElementById('w-amount').value)||0;
+  const isTfr=document.getElementById('w-is-tfr').checked;
+  const amount=isTfr?rawInput*0.83:rawInput;
+  const payload={scenario_id:currentScenario.id,label,amount,is_tfr:isTfr,raw_amount:isTfr?rawInput:null};
+  try{const[row]=await sb.post(TBL_WALLET,payload);wallet.push(row);}
   catch(e){toast('Eroare la salvare: '+e.message,'err');return;}
-  renderWallet();recalcAll();closeModal('mo-wallet');toast('✅ Sursă adăugată');
+  renderWallet();recalcAll();closeModal('mo-wallet');toast(isTfr?`✅ TFR net adăugat (${fmt(amount)})`:'✅ Sursă adăugată');
 }
+
+
 function openEditWallet(id){
   const w=wallet.find(x=>String(x.id)===String(id));if(!w)return;
-  document.getElementById('ew-id').value=id;document.getElementById('ew-label').value=w.label;document.getElementById('ew-amount').value=w.amount;
+  document.getElementById('ew-id').value=id;
+  document.getElementById('ew-label').value=w.label;
+  document.getElementById('ew-amount').value=w.is_tfr?w.raw_amount:w.amount;
+  document.getElementById('ew-is-tfr').checked=!!w.is_tfr;
+  updateEwHint();
   openModal('mo-edit-wallet');
 }
+function updateEwHint(){
+  const hint=document.getElementById('ew-net-hint');
+  const isTfr=document.getElementById('ew-is-tfr').checked;
+  if(isTfr){
+    const raw=parseFloat(document.getElementById('ew-amount').value)||0;
+    hint.style.display='block';hint.textContent=`net: ${fmt(raw*0.83)}`;
+  }else{hint.style.display='none';}
+}
+document.getElementById('ew-is-tfr').addEventListener('change',updateEwHint);
+document.getElementById('ew-amount').addEventListener('input',updateEwHint);
+
 async function updateWallet(){
   const id=document.getElementById('ew-id').value;const w=wallet.find(x=>String(x.id)===String(id));if(!w)return;
   const label=document.getElementById('ew-label').value.trim()||w.label;
-  const amount=parseFloat(document.getElementById('ew-amount').value)||0;
-  try{await sb.patch(TBL_WALLET,id,{label,amount});w.label=label;w.amount=amount;}
+  const rawInput=parseFloat(document.getElementById('ew-amount').value)||0;
+  const isTfr=document.getElementById('ew-is-tfr').checked;
+  const amount=isTfr?rawInput*0.83:rawInput;
+  const payload={label,amount,is_tfr:isTfr,raw_amount:isTfr?rawInput:null};
+  try{await sb.patch(TBL_WALLET,id,payload);Object.assign(w,payload);}
   catch(e){toast('Eroare la actualizare: '+e.message,'err');return;}
   renderWallet();recalcAll();closeModal('mo-edit-wallet');toast('✅ Actualizat');
 }
+
 async function deleteWallet(id){
   if(!confirm('Sigur vrei să ștergi această sursă?'))return;
   try{await sb.delete(TBL_WALLET,id);}catch(e){toast('Eroare la ștergere: '+e.message,'err');return;}
@@ -713,8 +844,62 @@ function renderWallet(){
 }
 
 // ══════════════════════════════════════════════
+//  TRANSFER ÎNTRE TABURI (Salariu / Portofel)
+// ══════════════════════════════════════════════
+function openTransferModal(type){
+  if(!currentScenario)return;
+  document.getElementById('tr-type').value=type;
+  document.getElementById('transfer-title').textContent=type==='salary'?'🔀 Transferă Salariu & Venituri':'🔀 Transferă Portofelul Personal';
+  const targets=scenarios.filter(s=>String(s.id)!==String(currentScenario.id));
+  const el=document.getElementById('transfer-targets');
+  if(!targets.length){el.innerHTML='<div class="empty-msg">Nu există alte taburi.</div>';}
+  else{
+    el.innerHTML=targets.map(s=>`<label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.045);font-size:13px;cursor:pointer;"><input type="checkbox" class="tr-target-cb" value="${s.id}" style="width:17px;height:17px;flex-shrink:0;">${esc(s.label)}</label>`).join('');
+  }
+  openModal('mo-transfer');
+}
+
+async function transferSalaryTo(targetId){
+  const payload={
+    scenario_id:targetId,
+    salary_monthly:parseFloat(document.getElementById('sal-monthly').value)||0,
+    salary_13:parseFloat(document.getElementById('sal-13').value)||0,
+    salary_14:parseFloat(document.getElementById('sal-14').value)||0,
+    bonus_new_year:parseFloat(document.getElementById('sal-bonus').value)||0,
+    tfr_amount:parseFloat(document.getElementById('sal-tfr').value)||0
+  };
+  const existing=await sb.get(TBL_SALARY,`select=id&scenario_id=eq.${targetId}`);
+  for(const row of existing){await sb.delete(TBL_SALARY,row.id);}
+  await sb.post(TBL_SALARY,payload);
+}
+
+async function transferWalletTo(targetId){
+  const existing=await sb.get(TBL_WALLET,`select=id&scenario_id=eq.${targetId}`);
+  for(const row of existing){await sb.delete(TBL_WALLET,row.id);}
+  for(const w of wallet){
+    await sb.post(TBL_WALLET,{scenario_id:targetId,label:w.label,amount:w.amount,is_tfr:w.is_tfr||false,raw_amount:w.raw_amount??null});
+  }
+}
+
+async function doTransfer(){
+  const type=document.getElementById('tr-type').value;
+  const checked=[...document.querySelectorAll('.tr-target-cb:checked')].map(cb=>cb.value);
+  if(!checked.length){toast('⚠️ Selectează cel puțin un tab','err');return;}
+  toast('⏳ Se transferă...');
+  try{
+    for(const targetId of checked){
+      if(type==='salary')await transferSalaryTo(targetId);
+      else await transferWalletTo(targetId);
+    }
+  }catch(e){toast('Eroare la transfer: '+e.message,'err');return;}
+  closeModal('mo-transfer');
+  toast(`✅ Transferat în ${checked.length} tab${checked.length>1?'uri':''}`);
+}
+
+// ══════════════════════════════════════════════
 //  CHELTUIELI — categorii + subcategorii
 // ══════════════════════════════════════════════
+
 function catTotal(c){const s=c.subcats||[];if(s.length>0)return s.reduce((a,x)=>a+(parseFloat(x.amount)||0),0);return parseFloat(c.amount)||0;}
 function sortCatsAsc(arr){return[...arr].sort((a,b)=>catTotal(a)-catTotal(b));}
 function sortSubsAsc(arr){return[...arr].sort((a,b)=>(parseFloat(a.amount)||0)-(parseFloat(b.amount)||0));}
@@ -819,7 +1004,97 @@ function setRemainEl(id,val){
   el.classList.add(val>=0?'val-pos':'val-neg');
 }
 
+let calcDetail={};
+
+function n(v){return`<span class="num">${fmt(v)}</span>`;}
+
+function openCalcDetail(type){
+  const d=calcDetail;
+  const title=document.getElementById('calc-detail-title');
+  const body=document.getElementById('calc-detail-body');
+  let steps=[],finalLbl='',finalVal=0;
+
+  if(type==='income-monthly-notfr'){
+    title.textContent='💶 Salariul curat lunar — fără TFR';
+    steps=[
+      {lbl:'1. Salariul de bază',f:`Salariu net lunar = ${n(d.salMonthly)}`},
+      {lbl:'2. Bonusurile anuale împărțite pe lună',f:`(Al 13-lea ${n(d.sal13)} + Al 14-lea ${n(d.sal14)} + Bonus ${n(d.salBonus)}) ÷ 12 = ${n((d.sal13+d.sal14+d.salBonus)/12)}`},
+      {lbl:'3. Total',f:`${n(d.salMonthly)} + ${n((d.sal13+d.sal14+d.salBonus)/12)} = ${n(d.monthlyIncomeNoTfr)}`}
+    ];
+    finalLbl='Salariu curat lunar (fără TFR)';finalVal=d.monthlyIncomeNoTfr;
+  }
+  else if(type==='income-annual-notfr'){
+    title.textContent='💶 Salariul curat anual — fără TFR';
+    steps=[
+      {lbl:'1. Salariul de bază × 12 luni',f:`${n(d.salMonthly)} × 12 = ${n(d.salMonthly*12)}`},
+      {lbl:'2. Se adaugă bonusurile',f:`+ Al 13-lea ${n(d.sal13)} + Al 14-lea ${n(d.sal14)} + Bonus ${n(d.salBonus)}`},
+      {lbl:'3. Total',f:`${n(d.salMonthly*12)} + ${n(d.sal13)} + ${n(d.sal14)} + ${n(d.salBonus)} = ${n(d.annualIncomeNoTfr)}`}
+    ];
+    finalLbl='Salariu curat anual (fără TFR)';finalVal=d.annualIncomeNoTfr;
+  }
+  else if(type==='income-monthly-tfr'){
+    title.textContent='💶 Salariul curat lunar — cu TFR';
+    steps=[
+      {lbl:'1. Salariul curat lunar (fără TFR)',f:`${n(d.monthlyIncomeNoTfr)}`},
+      {lbl:'2. TFR net pe lună',f:`(TFR brut ${n(d.salTfr)} × 14) ÷ 12 × 83% = ${n(d.salTfrNetMonthly)}`},
+      {lbl:'3. Total',f:`${n(d.monthlyIncomeNoTfr)} + ${n(d.salTfrNetMonthly)} = ${n(d.monthlyIncomeTfr)}`}
+    ];
+    finalLbl='Salariu curat lunar (cu TFR)';finalVal=d.monthlyIncomeTfr;
+  }
+  else if(type==='income-annual-tfr'){
+    title.textContent='💶 Salariul curat anual — cu TFR';
+    steps=[
+      {lbl:'1. Salariul curat anual (fără TFR)',f:`${n(d.annualIncomeNoTfr)}`},
+      {lbl:'2. TFR net pe an',f:`TFR net lunar ${n(d.salTfrNetMonthly)} × 12 = ${n(d.salTfrNetAnnual)}`},
+      {lbl:'3. Total',f:`${n(d.annualIncomeNoTfr)} + ${n(d.salTfrNetAnnual)} = ${n(d.annualIncomeTfr)}`}
+    ];
+    finalLbl='Salariu curat anual (cu TFR)';finalVal=d.annualIncomeTfr;
+  }
+  else if(type==='remain-monthly-notfr'){
+    title.textContent='📊 Rămas lunar — fără TFR';
+    steps=[
+      {lbl:'1. Salariul curat lunar (fără TFR)',f:`${n(d.monthlyIncomeNoTfr)}`},
+      {lbl:'2. Cheltuieli — media lunară totală',f:`Cheltuieli lunare ${n(d.monthlyDirect)} + (Cheltuieli anuale ${n(d.annualDirect)} ÷ 12) = ${n(d.monthlyAvg)}`},
+      {lbl:'3. Rămas',f:`${n(d.monthlyIncomeNoTfr)} − ${n(d.monthlyAvg)} = ${n(d.remainMonthlyNoTfr)}`}
+    ];
+    finalLbl='Rămas lunar (fără TFR)';finalVal=d.remainMonthlyNoTfr;
+  }
+  else if(type==='remain-monthly-tfr'){
+    title.textContent='📊 Rămas lunar — cu TFR';
+    steps=[
+      {lbl:'1. Salariul curat lunar (cu TFR)',f:`${n(d.monthlyIncomeTfr)}`},
+      {lbl:'2. Cheltuieli — media lunară totală',f:`Cheltuieli lunare ${n(d.monthlyDirect)} + (Cheltuieli anuale ${n(d.annualDirect)} ÷ 12) = ${n(d.monthlyAvg)}`},
+      {lbl:'3. Rămas',f:`${n(d.monthlyIncomeTfr)} − ${n(d.monthlyAvg)} = ${n(d.remainMonthlyTfr)}`}
+    ];
+    finalLbl='Rămas lunar (cu TFR)';finalVal=d.remainMonthlyTfr;
+  }
+  else if(type==='remain-annual-notfr'){
+    title.textContent='📊 Rămas anual — fără TFR';
+    steps=[
+      {lbl:'1. Salariul curat anual (fără TFR)',f:`${n(d.annualIncomeNoTfr)}`},
+      {lbl:'2. Cheltuieli — total anual complet',f:`Cheltuieli anuale ${n(d.annualDirect)} + (Cheltuieli lunare ${n(d.monthlyDirect)} × 12) = ${n(d.annualComplete)}`},
+      {lbl:'3. Rămas',f:`${n(d.annualIncomeNoTfr)} − ${n(d.annualComplete)} = ${n(d.remainAnnualNoTfr)}`}
+    ];
+    finalLbl='Rămas anual (fără TFR)';finalVal=d.remainAnnualNoTfr;
+  }
+  else if(type==='remain-annual-tfr'){
+    title.textContent='📊 Rămas anual — cu TFR';
+    steps=[
+      {lbl:'1. Salariul curat anual (cu TFR)',f:`${n(d.annualIncomeTfr)}`},
+      {lbl:'2. Cheltuieli — total anual complet',f:`Cheltuieli anuale ${n(d.annualDirect)} + (Cheltuieli lunare ${n(d.monthlyDirect)} × 12) = ${n(d.annualComplete)}`},
+      {lbl:'3. Rămas',f:`${n(d.annualIncomeTfr)} − ${n(d.annualComplete)} = ${n(d.remainAnnualTfr)}`}
+    ];
+    finalLbl='Rămas anual (cu TFR)';finalVal=d.remainAnnualTfr;
+  }
+
+  body.innerHTML=steps.map(s=>`<div class="calc-step"><div class="calc-step-lbl">${s.lbl}</div><div class="calc-step-formula">${s.f}</div></div>`).join('')
+    +`<div class="calc-final"><div class="calc-final-lbl">${finalLbl}</div><div class="calc-final-val">${fmt(finalVal)}</div></div>`;
+
+  openModal('mo-calc-detail');
+}
+
 function recalcAll(){
+
   const walletTotal=wallet.reduce((s,w)=>s+(parseFloat(w.amount)||0),0);
   document.getElementById('wallet-total').textContent=fmt(walletTotal);
   document.getElementById('net-sum-wallet').textContent=fmt(walletTotal);
@@ -842,17 +1117,40 @@ function recalcAll(){
   const sal14=parseFloat(document.getElementById('sal-14').value)||0;
   const salBonus=parseFloat(document.getElementById('sal-bonus').value)||0;
   const salTfr=parseFloat(document.getElementById('sal-tfr').value)||0;
+  const salTfrNetMonthly=((salTfr*14)/12)*0.83;
+  const salTfrNetAnnual=salTfrNetMonthly*12;
+  const tfrHintEl=document.getElementById('tfr-net-hint');
+  if(tfrHintEl)tfrHintEl.textContent=`net: ${fmt(salTfrNetMonthly)}/lună · ${fmt(salTfrNetAnnual)}/an`;
 
-  const monthlyIncomeAvg=salMonthly+(sal13+sal14+salBonus)/12;
-  const annualIncomeTotal=(salMonthly*12)+sal13+sal14+salBonus;
+  const monthlyIncomeNoTfr=salMonthly+(sal13+sal14+salBonus)/12;
+  const annualIncomeNoTfr=(salMonthly*12)+sal13+sal14+salBonus;
+  const monthlyIncomeTfr=monthlyIncomeNoTfr+salTfrNetMonthly;
+  const annualIncomeTfr=annualIncomeNoTfr+salTfrNetAnnual;
 
-  const remainMonthly=monthlyIncomeAvg-monthlyAvg;
-  const remainAnnualNoTfr=annualIncomeTotal-annualComplete;
-  const remainAnnualTfr=remainAnnualNoTfr+salTfr;
+  document.getElementById('income-monthly-notfr').textContent=fmt(monthlyIncomeNoTfr);
+  document.getElementById('income-annual-notfr').textContent=fmt(annualIncomeNoTfr);
+  document.getElementById('income-monthly-tfr').textContent=fmt(monthlyIncomeTfr);
+  document.getElementById('income-annual-tfr').textContent=fmt(annualIncomeTfr);
 
-  setRemainEl('remain-monthly',remainMonthly);
+  const remainMonthlyNoTfr=monthlyIncomeNoTfr-monthlyAvg;
+  const remainMonthlyTfr=monthlyIncomeTfr-monthlyAvg;
+  const remainAnnualNoTfr=annualIncomeNoTfr-annualComplete;
+  const remainAnnualTfr=annualIncomeTfr-annualComplete;
+
+  setRemainEl('remain-monthly-notfr',remainMonthlyNoTfr);
+  setRemainEl('remain-monthly-tfr',remainMonthlyTfr);
   setRemainEl('remain-annual-notfr',remainAnnualNoTfr);
   setRemainEl('remain-annual-tfr',remainAnnualTfr);
+
+  calcDetail={
+    salMonthly,sal13,sal14,salBonus,salTfr,
+    salTfrNetMonthly,salTfrNetAnnual,
+    monthlyDirect,annualDirect,monthlyAvg,annualComplete,
+    monthlyIncomeNoTfr,annualIncomeNoTfr,monthlyIncomeTfr,annualIncomeTfr,
+    remainMonthlyNoTfr,remainMonthlyTfr,remainAnnualNoTfr,remainAnnualTfr
+  };
+
+
 }
 
 // ══════════════════════════════════════════════
