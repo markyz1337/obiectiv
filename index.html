@@ -952,20 +952,25 @@ async function transferWalletTo(targetId){
   }
 }
 
+let transferInProgress=false;
 async function doTransfer(){
+  if(transferInProgress)return;
   const type=document.getElementById('tr-type').value;
   const checked=[...document.querySelectorAll('.tr-target-cb:checked')].map(cb=>cb.value);
   if(!checked.length){toast('⚠️ Selectează cel puțin un tab','err');return;}
+  transferInProgress=true;
   toast('⏳ Se transferă...');
   try{
     for(const targetId of checked){
       if(type==='salary')await transferSalaryTo(targetId);
       else await transferWalletTo(targetId);
     }
-  }catch(e){toast('Eroare la transfer: '+e.message,'err');return;}
+  }catch(e){toast('Eroare la transfer: '+e.message,'err');transferInProgress=false;return;}
+  transferInProgress=false;
   closeModal('mo-transfer');
   toast(`✅ Transferat în ${checked.length} tab${checked.length>1?'uri':''}`);
 }
+
 
 // ══════════════════════════════════════════════
 //  CHELTUIELI — categorii + subcategorii
