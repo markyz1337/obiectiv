@@ -97,6 +97,8 @@ select option{background:#0d1530;}
 .net-sum-val{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--txt);}
 .net-sum-val.val-pos{color:var(--green);}
 .net-sum-val.val-neg{color:var(--red);}
+.net-sum-sub{font-family:'Space Mono',monospace;font-size:9.5px;color:var(--muted);margin-top:4px;}
+
 
 .remain-table{width:100%;background:rgba(255,255,255,0.028);border:1px solid rgba(255,255,255,0.07);border-radius:14px;overflow:hidden;}
 .rt-row{display:grid;grid-template-columns:1fr 1fr 1fr;}
@@ -236,17 +238,80 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
 
     <div class="main">
 
-      <div class="card net-banner" id="card-net-banner">
-        <div class="net-lbl">🧾 Media lunară a cheltuielilor</div>
-        <div class="net-val" id="net-val">0 €</div>
+       <div class="card net-banner" id="card-net-banner">
+        <div class="net-lbl">💰 Rămas lunar (cu TFR)</div>
+        <div class="net-val rt-clickable" id="net-val" onclick="openCalcDetail('remain-monthly-tfr')">0 €</div>
+
         <div class="net-sums">
           <div class="net-sum-block">
-            <div class="net-sum-lbl">Total anual complet</div>
-            <div class="net-sum-val" id="net-sum-annual">0 €</div>
+            <div class="net-sum-lbl">Portofel</div>
+            <div class="net-sum-val" id="net-sum-wallet">0 €</div>
+            <div class="net-sum-sub" id="net-sum-wallet-notfr">fără TFR: 0 €</div>
           </div>
           <div class="net-sum-block">
-            <div class="net-sum-lbl">Portofel total</div>
-            <div class="net-sum-val" id="net-sum-wallet">0 €</div>
+            <div class="net-sum-lbl">Cheltuieli lunare</div>
+            <div class="net-sum-val" id="net-sum-monthly-exp">0 €</div>
+            <div class="net-sum-sub" id="net-sum-annual-hint">anual: 0 €</div>
+          </div>
+        </div>
+      </div>
+
+
+
+
+      <div class="card" id="card-wallet">
+        <div class="card-hdr">
+          <div class="card-title"><span class="dot dot-blue"></span>Portofelul Personal</div>
+          <div class="card-hdr-actions">
+            <button class="fbtn fbtn-ghost fbtn-icon fin-sensitive-action" onclick="openTransferModal('wallet')" title="Transferă" aria-label="Transferă">🔀</button>
+            <button class="fbtn fbtn-blue fbtn-sm fin-sensitive-action" onclick="openModal('mo-wallet')">+ Adaugă</button>
+          </div>
+        </div>
+
+
+        <div class="card-body">
+          <div class="loader" id="loader-wallet"><span class="spinner"></span>Se încarcă...</div>
+          <div id="wallet-list"></div>
+          <div class="wallet-total-block">
+            <div class="wallet-total-lbl">Total portofel</div>
+            <div class="wallet-total-val" id="wallet-total">0 €</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="card-expenses">
+        <div class="card-hdr">
+          <div class="card-title"><span class="dot dot-gold"></span>Cheltuieli</div>
+          <button class="fbtn fbtn-blue fbtn-sm fin-sensitive-action" onclick="openModal('mo-cat')">+ Categorie</button>
+        </div>
+        <div class="card-body">
+          <div class="loader" id="loader-cats"><span class="spinner"></span>Se încarcă...</div>
+          <div class="section-sep">📅 Cheltuieli Anuale (o dată/an)</div>
+          <div id="annual-list"></div>
+          <div class="total-row">
+            <div class="total-mini-card">
+              <div class="total-mini-lbl">Total anual direct</div>
+              <div class="total-mini-val" id="annual-total">0 €</div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="section-sep">🗓 Cheltuieli Lunare</div>
+          <div id="monthly-list"></div>
+          <div class="total-row">
+            <div class="total-mini-card">
+              <div class="total-mini-lbl">Total lunar direct</div>
+              <div class="total-mini-val" id="monthly-total">0 €</div>
+            </div>
+          </div>
+           <div class="sum-grid">
+            <div class="sum-block">
+              <div class="s-lbl">Media lunară totală</div>
+              <div class="s-val" id="sum-monthly-avg">0 €</div>
+            </div>
+            <div class="sum-block">
+              <div class="s-lbl">Total anual complet</div>
+              <div class="s-val" id="sum-annual">0 €</div>
+            </div>
           </div>
         </div>
       </div>
@@ -276,8 +341,6 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
           </div>
         </div>
       </div>
-
-
 
       <div class="card" id="card-remain">
         <div class="card-hdr">
@@ -337,67 +400,11 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
         </div>
       </div>
 
-
-
-
-      <div class="card" id="card-wallet">
-        <div class="card-hdr">
-          <div class="card-title"><span class="dot dot-blue"></span>Portofelul Personal</div>
-          <div class="card-hdr-actions">
-            <button class="fbtn fbtn-ghost fbtn-icon fin-sensitive-action" onclick="openTransferModal('wallet')" title="Transferă" aria-label="Transferă">🔀</button>
-            <button class="fbtn fbtn-blue fbtn-sm fin-sensitive-action" onclick="openModal('mo-wallet')">+ Adaugă</button>
-          </div>
-        </div>
-
-
-        <div class="card-body">
-          <div class="loader" id="loader-wallet"><span class="spinner"></span>Se încarcă...</div>
-          <div id="wallet-list"></div>
-          <div class="wallet-total-block">
-            <div class="wallet-total-lbl">Total portofel</div>
-            <div class="wallet-total-val" id="wallet-total">0 €</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card" id="card-expenses">
-        <div class="card-hdr">
-          <div class="card-title"><span class="dot dot-gold"></span>Cheltuieli</div>
-          <button class="fbtn fbtn-blue fbtn-sm fin-sensitive-action" onclick="openModal('mo-cat')">+ Categorie</button>
-        </div>
-        <div class="card-body">
-          <div class="loader" id="loader-cats"><span class="spinner"></span>Se încarcă...</div>
-          <div class="section-sep">📅 Cheltuieli Anuale (o dată/an)</div>
-          <div id="annual-list"></div>
-          <div class="total-row">
-            <div class="total-mini-card">
-              <div class="total-mini-lbl">Total anual direct</div>
-              <div class="total-mini-val" id="annual-total">0 €</div>
-            </div>
-          </div>
-          <div class="divider"></div>
-          <div class="section-sep">🗓 Cheltuieli Lunare</div>
-          <div id="monthly-list"></div>
-          <div class="total-row">
-            <div class="total-mini-card">
-              <div class="total-mini-lbl">Total lunar direct</div>
-              <div class="total-mini-val" id="monthly-total">0 €</div>
-            </div>
-          </div>
-          <div class="sum-grid">
-            <div class="sum-block">
-              <div class="s-lbl">Media lunară totală</div>
-              <div class="s-val" id="sum-monthly-avg">0 €</div>
-            </div>
-            <div class="sum-block">
-              <div class="s-lbl">Total anual complet</div>
-              <div class="s-val" id="sum-annual">0 €</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div style="height:48px;"></div>
 
     </div><!-- end .main -->
+
+
 
     <div class="ftoast" id="toast"></div>
 
@@ -692,8 +699,9 @@ function renderTabs(){
     const editBtn=isUnlocked?`<span class="tab-edit" onclick="event.stopPropagation();openRenameScenario('${s.id}')">✏️</span>`:'';
     const delBtn=(isUnlocked&&scenarios.length>1)?`<span class="tab-del" onclick="event.stopPropagation();deleteScenario('${s.id}')">×</span>`:'';
     return`<div class="tab-chip${active?' active':''}" onclick="switchScenario('${s.id}')">${esc(s.label)}${editBtn}${delBtn}</div>`;
-  }).join('')+`<div class="tab-chip tab-add" onclick="openNewTabModal()">+ Tab nou</div>`;
+  }).join('')+(isUnlocked?`<div class="tab-chip tab-add" onclick="openNewTabModal()">+ Tab nou</div>`:'');
 }
+
 
 async function switchScenario(id){
   if(currentScenario&&String(currentScenario.id)===String(id))return;
@@ -1146,12 +1154,17 @@ function openCalcDetail(type){
   else if(type==='remain-monthly-tfr'){
     title.textContent='📊 Rămas lunar — cu TFR';
     steps=[
-      {lbl:'1. Salariul curat lunar (cu TFR)',f:`${n(d.monthlyIncomeTfr)}`},
-      {lbl:'2. Cheltuieli — media lunară totală',f:`Cheltuieli lunare ${n(d.monthlyDirect)} + (Cheltuieli anuale ${n(d.annualDirect)} ÷ 12) = ${n(d.monthlyAvg)}`},
-      {lbl:'3. Rămas',f:`${n(d.monthlyIncomeTfr)} − ${n(d.monthlyAvg)} = ${n(d.remainMonthlyTfr)}`}
+      {lbl:'1. Salariul de bază',f:`Salariu net lunar = ${n(d.salMonthly)}`},
+      {lbl:'2. Bonusurile anuale împărțite pe lună',f:`(Al 13-lea ${n(d.sal13)} + Al 14-lea ${n(d.sal14)} + Bonus ${n(d.salBonus)}) ÷ 12 = ${n((d.sal13+d.sal14+d.salBonus)/12)}`},
+      {lbl:'3. Salariul curat lunar (fără TFR)',f:`${n(d.salMonthly)} + ${n((d.sal13+d.sal14+d.salBonus)/12)} = ${n(d.monthlyIncomeNoTfr)}`},
+      {lbl:'4. TFR net pe lună',f:`(TFR brut ${n(d.salTfr)} × 14) ÷ 12 × 83% = ${n(d.salTfrNetMonthly)}`},
+      {lbl:'5. Salariul curat lunar (cu TFR)',f:`${n(d.monthlyIncomeNoTfr)} + ${n(d.salTfrNetMonthly)} = ${n(d.monthlyIncomeTfr)}`},
+      {lbl:'6. Cheltuieli — media lunară totală',f:`Cheltuieli lunare ${n(d.monthlyDirect)} + (Cheltuieli anuale ${n(d.annualDirect)} ÷ 12) = ${n(d.monthlyAvg)}`},
+      {lbl:'7. Rămas',f:`${n(d.monthlyIncomeTfr)} − ${n(d.monthlyAvg)} = ${n(d.remainMonthlyTfr)}`}
     ];
     finalLbl='Rămas lunar (cu TFR)';finalVal=d.remainMonthlyTfr;
   }
+
   else if(type==='remain-annual-notfr'){
     title.textContent='📊 Rămas anual — fără TFR';
     steps=[
@@ -1199,8 +1212,10 @@ function openCalcDetail(type){
 function recalcAll(){
 
   const walletTotal=wallet.reduce((s,w)=>s+(parseFloat(w.amount)||0),0);
+  const walletTotalNoTfr=wallet.filter(w=>!w.is_tfr).reduce((s,w)=>s+(parseFloat(w.amount)||0),0);
   document.getElementById('wallet-total').textContent=fmt(walletTotal);
   document.getElementById('net-sum-wallet').textContent=fmt(walletTotal);
+  document.getElementById('net-sum-wallet-notfr').textContent=`fără TFR: ${fmt(walletTotalNoTfr)}`;
 
   let annualDirect=0,monthlyDirect=0;
   categories.forEach(c=>{const t=catTotal(c);if(c.tip==='annual')annualDirect+=t;else monthlyDirect+=t;});
@@ -1211,8 +1226,10 @@ function recalcAll(){
   document.getElementById('monthly-total').textContent=fmt(monthlyDirect);
   document.getElementById('sum-monthly-avg').textContent=fmt(monthlyAvg);
   document.getElementById('sum-annual').textContent=fmt(annualComplete);
-  document.getElementById('net-val').textContent=fmt(monthlyAvg);
-  document.getElementById('net-sum-annual').textContent=fmt(annualComplete);
+  document.getElementById('net-sum-monthly-exp').textContent=fmt(monthlyAvg);
+  document.getElementById('net-sum-annual-hint').textContent=`anual: ${fmt(annualComplete)}`;
+
+
 
   // Venituri (citite live din inputuri, chiar dacă nu au fost încă salvate)
   const salMonthly=parseFloat(document.getElementById('sal-monthly').value)||0;
@@ -1253,6 +1270,9 @@ function recalcAll(){
   setRemainEl('remain-monthly-tfr',remainMonthlyTfr);
   setRemainEl('remain-annual-notfr',remainAnnualNoTfr);
   setRemainEl('remain-annual-tfr',remainAnnualTfr);
+  document.getElementById('net-val').textContent=fmt(remainMonthlyTfr);
+
+
 
 
   calcDetail={
