@@ -82,6 +82,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 input[type="text"],input[type="number"],select{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.09);border-radius:14px;color:var(--txt);font-family:'Syne',sans-serif;font-size:14px;font-weight:500;padding:11px 14px;width:100%;outline:none;transition:border .2s,box-shadow .2s,background .2s;-webkit-appearance:none;}
 input:focus,select:focus{border-color:rgba(79,142,247,0.55);box-shadow:0 0 0 3px rgba(79,142,247,0.1);background:rgba(79,142,247,0.035);}
 select option{background:#0d1530;}
+input[type="date"]{color-scheme:dark;}
+
 .field-label{font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px;}
 .input-with-badge{position:relative;}
 .input-with-badge input{padding-right:44px;}
@@ -400,9 +402,56 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
         </div>
       </div>
 
+      <div class="card" id="card-goal">
+        <div class="card-hdr">
+          <div class="card-title"><span class="dot dot-gold"></span>🎯 Obiectiv Financiar</div>
+        </div>
+        <div class="card-body">
+          <div class="fmodal-fields">
+            <div><div class="field-label">Sumă obiectiv</div><div class="input-with-badge"><input type="number" id="goal-target" inputmode="decimal" step="0.01" placeholder="ex: 300000" oninput="recalcGoal()"><span class="input-curr-badge">€</span></div></div>
+
+            <div>
+              <div class="field-label">Sursă bani existenți</div>
+              <select id="goal-existing-source" onchange="toggleGoalExistingSource();recalcGoal()">
+                <option value="manual">Manual</option>
+                <option value="wallet_tfr">Din portofel (cu TFR)</option>
+                <option value="wallet_no_tfr">Din portofel (fără TFR)</option>
+              </select>
+
+            </div>
+            <div><div class="field-label">Bani existenți</div><div class="input-with-badge"><input type="number" id="goal-existing" inputmode="decimal" step="0.01" placeholder="ex: 50000" oninput="recalcGoal()"><span class="input-curr-badge">€</span></div></div>
+
+
+            <div style="display:flex;gap:16px;flex-wrap:wrap;">
+              <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);cursor:pointer;"><input type="checkbox" id="goal-show-tfr" checked onchange="recalcGoal()" style="width:16px;height:16px;">Arată cu TFR</label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);cursor:pointer;"><input type="checkbox" id="goal-show-notfr" checked onchange="recalcGoal()" style="width:16px;height:16px;">Arată fără TFR</label>
+            </div>
+
+            <div>
+              <div class="field-label">Start calcul</div>
+              <select id="goal-start-mode" onchange="toggleGoalDate();recalcGoal()">
+                <option value="today">Ziua de azi</option>
+                <option value="fixed">Dată fixă</option>
+              </select>
+            </div>
+            <div id="goal-date-wrap" style="display:none;">
+              <div class="field-label">Data de start</div>
+              <input type="date" id="goal-start-date" onchange="recalcGoal()">
+            </div>
+
+            <button class="fbtn fbtn-blue fin-sensitive-action" style="width:100%;padding:13px;border-radius:16px;" onclick="saveGoal()">💾 Salvează obiectivul</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div id="goal-results"></div>
+        </div>
+      </div>
+
       <div style="height:48px;"></div>
 
     </div><!-- end .main -->
+
 
 
 
@@ -612,6 +661,8 @@ const TBL_SCEN='sim_scenarios';
 const TBL_WALLET='sim_wallet';
 const TBL_EXP='sim_expenses';
 const TBL_SALARY='sim_salary';
+const TBL_GOAL='sim_goals';
+
 const LS_KEY='simItalia_lastScenario';
 
 const sb={
@@ -638,6 +689,9 @@ let scenarios=[];
 let currentScenario=null;
 let wallet=[], categories=[];
 let salary={id:null,scenario_id:null,salary_monthly:0,salary_13:0,salary_14:0,bonus_new_year:0,tfr_amount:0,meal_vouchers:168};
+let goal={id:null,scenario_id:null,target_amount:0,existing_amount:0,existing_source:'manual',show_tfr:true,show_no_tfr:true,start_mode:'today',start_date:null};
+
+
 
 let isUnlocked=false,isLoading=false;
 let openSubcatIds=new Set();
@@ -759,7 +813,15 @@ async function copyScenarioData(fromId,toId){
     await sb.post(TBL_SALARY,{scenario_id:toId,salary_monthly:s.salary_monthly,salary_13:s.salary_13,salary_14:s.salary_14,bonus_new_year:s.bonus_new_year,tfr_amount:s.tfr_amount,meal_vouchers:s.meal_vouchers});
 
   }
+
+  const gRows=await sb.get(TBL_GOAL,`select=*&scenario_id=eq.${fromId}&limit=1`);
+  if(gRows.length){
+    const g=gRows[0];
+    await sb.post(TBL_GOAL,{scenario_id:toId,target_amount:g.target_amount,existing_amount:g.existing_amount,existing_source:g.existing_source,show_tfr:g.show_tfr,show_no_tfr:g.show_no_tfr,start_mode:g.start_mode,start_date:g.start_date});
+
+  }
 }
+
 
 function openRenameScenario(id){
   const s=scenarios.find(x=>String(x.id)===String(id));if(!s)return;
@@ -804,11 +866,15 @@ async function loadAll(){
     categories=rows.filter(r=>!r.parent_id).map(c=>({...c,subcats:rows.filter(s=>String(s.parent_id)===String(c.id))}));
     const salRows=await sb.get(TBL_SALARY,`select=*&scenario_id=eq.${currentScenario.id}&limit=1`);
     salary=salRows.length?salRows[0]:{id:null,scenario_id:currentScenario.id,salary_monthly:0,salary_13:0,salary_14:0,bonus_new_year:0,tfr_amount:0,meal_vouchers:168};
+    const goalRows=await sb.get(TBL_GOAL,`select=*&scenario_id=eq.${currentScenario.id}&limit=1`);
+    goal=goalRows.length?goalRows[0]:{id:null,scenario_id:currentScenario.id,target_amount:0,existing_amount:0,existing_source:'manual',show_tfr:true,show_no_tfr:true,start_mode:'today',start_date:null};
+
 
   }catch(e){toast('Eroare la încărcare: '+e.message,'err');}
   finally{setLoader('loader-wallet',false);setLoader('loader-cats',false);isLoading=false;}
-  renderWallet();renderExpenses();renderSalary();recalcAll();
+  renderWallet();renderExpenses();renderSalary();renderGoal();recalcAll();
 }
+
 
 let fabLocked=false;
 async function handleFabRefresh(){
@@ -1295,13 +1361,137 @@ function recalcAll(){
     remainMonthlyBrutto,remainAnnualBrutto
   };
 
+  recalcGoal();
+
+}
 
 
+// ══════════════════════════════════════════════
+//  OBIECTIV FINANCIAR
+// ══════════════════════════════════════════════
+function toggleGoalDate(){
+  const mode=document.getElementById('goal-start-mode').value;
+  document.getElementById('goal-date-wrap').style.display=mode==='fixed'?'block':'none';
+}
+
+function renderGoal(){
+  document.getElementById('goal-target').value=goal.target_amount||0;
+  document.getElementById('goal-existing-source').value=goal.existing_source||'manual';
+  document.getElementById('goal-existing').value=goal.existing_amount||0;
+  document.getElementById('goal-show-tfr').checked=goal.show_tfr!==false;
+  document.getElementById('goal-show-notfr').checked=goal.show_no_tfr!==false;
+  document.getElementById('goal-start-mode').value=goal.start_mode||'today';
+  document.getElementById('goal-start-date').value=goal.start_date||'';
+  toggleGoalDate();
+  toggleGoalExistingSource();
+}
+
+function toggleGoalExistingSource(){
+  const source=document.getElementById('goal-existing-source').value;
+  const input=document.getElementById('goal-existing');
+  if(source==='wallet_tfr'||source==='wallet_no_tfr'){
+    const walletTotal=source==='wallet_tfr'
+      ?wallet.reduce((s,w)=>s+(parseFloat(w.amount)||0),0)
+      :wallet.filter(w=>!w.is_tfr).reduce((s,w)=>s+(parseFloat(w.amount)||0),0);
+    input.value=walletTotal;
+    input.readOnly=true;
+    input.style.opacity='0.6';
+  }else{
+    input.readOnly=false;
+    input.style.opacity='1';
+  }
+}
+
+
+
+async function saveGoal(){
+  if(!currentScenario)return;
+  const payload={
+    scenario_id:currentScenario.id,
+    target_amount:parseFloat(document.getElementById('goal-target').value)||0,
+    existing_amount:parseFloat(document.getElementById('goal-existing').value)||0,
+    existing_source:document.getElementById('goal-existing-source').value,
+    show_tfr:document.getElementById('goal-show-tfr').checked,
+
+    show_no_tfr:document.getElementById('goal-show-notfr').checked,
+    start_mode:document.getElementById('goal-start-mode').value,
+    start_date:document.getElementById('goal-start-mode').value==='fixed'?(document.getElementById('goal-start-date').value||null):null
+  };
+  try{
+    if(goal.id){await sb.patch(TBL_GOAL,goal.id,payload);Object.assign(goal,payload);}
+    else{const[row]=await sb.post(TBL_GOAL,payload);goal=row;}
+  }catch(e){toast('Eroare la salvare obiectiv: '+e.message,'err');return;}
+  recalcGoal();toast('✅ Obiectiv salvat');
+}
+
+function monthsToYearsMonths(months){
+  const totalMonths=Math.ceil(months);
+  return{y:Math.floor(totalMonths/12),m:totalMonths%12};
+}
+function addMonthsToDate(date,months){
+  const d=new Date(date);
+  d.setMonth(d.getMonth()+Math.ceil(months));
+  return d;
+}
+function fmtDate(d){
+  return d.toLocaleDateString('ro-RO',{year:'numeric',month:'long',day:'numeric'});
+}
+
+function recalcGoal(){
+  const resEl=document.getElementById('goal-results');
+  if(!resEl)return;
+
+  const target=parseFloat(document.getElementById('goal-target').value)||0;
+  const goalSource=document.getElementById('goal-existing-source').value;
+  if(goalSource==='wallet_tfr'||goalSource==='wallet_no_tfr'){
+    const walletTotal=goalSource==='wallet_tfr'
+      ?wallet.reduce((s,w)=>s+(parseFloat(w.amount)||0),0)
+      :wallet.filter(w=>!w.is_tfr).reduce((s,w)=>s+(parseFloat(w.amount)||0),0);
+    document.getElementById('goal-existing').value=walletTotal;
+  }
+  const existing=parseFloat(document.getElementById('goal-existing').value)||0;
+
+
+  const remaining=target-existing;
+  const showTfr=document.getElementById('goal-show-tfr').checked;
+  const showNoTfr=document.getElementById('goal-show-notfr').checked;
+  const startMode=document.getElementById('goal-start-mode').value;
+  const startDateVal=document.getElementById('goal-start-date').value;
+  const startDate=(startMode==='fixed'&&startDateVal)?new Date(startDateVal):new Date();
+
+  const d=calcDetail;
+  const monthlyTfr=d.remainMonthlyTfr||0;
+  const monthlyNoTfr=d.remainMonthlyNoTfr||0;
+
+  if(target<=0){resEl.innerHTML='<div class="empty-msg">Introdu o sumă obiectiv.</div>';return;}
+  if(remaining<=0){resEl.innerHTML='<div class="empty-msg">🎉 Obiectivul este deja atins!</div>';return;}
+  if(!showTfr&&!showNoTfr){resEl.innerHTML='<div class="empty-msg">Bifează cel puțin o opțiune.</div>';return;}
+
+  function block(label,monthlyRemain){
+    if(monthlyRemain<=0){
+      return`<div class="calc-step"><div class="calc-step-lbl">${label}</div><div class="calc-step-formula" style="color:var(--red);">Nu se poate atinge — rămas lunar ≤ 0</div></div>`;
+    }
+    const months=remaining/monthlyRemain;
+    const my=monthsToYearsMonths(months);
+    const targetDate=addMonthsToDate(startDate,months);
+    return`<div class="calc-step">
+      <div class="calc-step-lbl">${label}</div>
+      <div class="calc-step-formula">${n(remaining)} ÷ ${n(monthlyRemain)} = <span class="num">${months.toFixed(1)} luni</span></div>
+      <div class="calc-step-formula">≈ ${my.y} ani și ${my.m} luni</div>
+      <div class="calc-step-formula">📅 Estimat: <span class="num">${fmtDate(targetDate)}</span></div>
+    </div>`;
+  }
+
+  let html='';
+  if(showTfr)html+=block('Cu TFR',monthlyTfr);
+  if(showNoTfr)html+=block('Fără TFR',monthlyNoTfr);
+  resEl.innerHTML=html;
 }
 
 // ══════════════════════════════════════════════
 //  EXPORT CSV
 // ══════════════════════════════════════════════
+
 function csvEscape(v){if(v===null||v===undefined)return'';const s=typeof v==='object'?JSON.stringify(v):String(v);if(/[",\n]/.test(s))return'"'+s.replace(/"/g,'""')+'"';return s;}
 async function exportTableCSV(table){
   try{
