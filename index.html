@@ -128,6 +128,21 @@ input[type="date"]{color-scheme:dark;}
 .calc-final-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:rgba(245,200,66,0.6);margin-bottom:6px;}
 .calc-final-val{font-family:'Space Mono',monospace;font-size:22px;font-weight:800;background:linear-gradient(135deg,#fff,#f5c842);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
 
+.goal-toggle-row{display:flex;gap:8px;}
+.goal-toggle{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 10px;border-radius:12px;background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.09);font-size:12px;font-weight:700;color:var(--dim);cursor:pointer;transition:all .2s cubic-bezier(.16,1,.3,1);}
+.goal-toggle input{display:none;}
+.goal-toggle.active{background:linear-gradient(135deg,rgba(245,200,66,0.18),rgba(245,200,66,0.06));border-color:rgba(245,200,66,0.4);color:var(--gold);}
+.goal-sub-box{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:16px;}
+
+
+
+
+
+.goal-result-card{cursor:pointer;transition:background .15s,transform .15s;}
+.goal-result-card:active{background:rgba(79,142,247,0.1);transform:scale(0.99);}
+.goal-result-hint{font-size:9.5px;color:var(--blue-l);margin-top:8px;text-align:right;font-weight:700;}
+
+
 
 .wallet-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.045);}
 
@@ -408,7 +423,11 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
         </div>
         <div class="card-body">
           <div class="fmodal-fields">
-            <div><div class="field-label">Sumă obiectiv</div><div class="input-with-badge"><input type="number" id="goal-target" inputmode="decimal" step="0.01" placeholder="ex: 300000" oninput="recalcGoal()"><span class="input-curr-badge">€</span></div></div>
+
+            <div>
+              <div class="field-label">Sumă obiectiv</div>
+              <div class="input-with-badge"><input type="number" id="goal-target" inputmode="decimal" step="0.01" placeholder="ex: 300000" oninput="recalcGoal()"><span class="input-curr-badge">€</span></div>
+            </div>
 
             <div>
               <div class="field-label">Sursă bani existenți</div>
@@ -417,14 +436,16 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
                 <option value="wallet_tfr">Din portofel (cu TFR)</option>
                 <option value="wallet_no_tfr">Din portofel (fără TFR)</option>
               </select>
-
             </div>
-            <div><div class="field-label">Bani existenți</div><div class="input-with-badge"><input type="number" id="goal-existing" inputmode="decimal" step="0.01" placeholder="ex: 50000" oninput="recalcGoal()"><span class="input-curr-badge">€</span></div></div>
 
+            <div>
+              <div class="field-label">Bani existenți</div>
+              <div class="input-with-badge"><input type="number" id="goal-existing" inputmode="decimal" step="0.01" placeholder="ex: 50000" oninput="recalcGoal()"><span class="input-curr-badge">€</span></div>
+            </div>
 
-            <div style="display:flex;gap:16px;flex-wrap:wrap;">
-              <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);cursor:pointer;"><input type="checkbox" id="goal-show-tfr" checked onchange="recalcGoal()" style="width:16px;height:16px;">Arată cu TFR</label>
-              <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);cursor:pointer;"><input type="checkbox" id="goal-show-notfr" checked onchange="recalcGoal()" style="width:16px;height:16px;">Arată fără TFR</label>
+            <div class="goal-toggle-row">
+              <label class="goal-toggle" id="goal-toggle-tfr"><input type="checkbox" id="goal-show-tfr" checked onchange="updateGoalToggle('tfr');recalcGoal()">Cu TFR</label>
+              <label class="goal-toggle" id="goal-toggle-notfr"><input type="checkbox" id="goal-show-notfr" checked onchange="updateGoalToggle('notfr');recalcGoal()">Fără TFR</label>
             </div>
 
             <div>
@@ -432,11 +453,29 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
               <select id="goal-start-mode" onchange="toggleGoalDate();recalcGoal()">
                 <option value="today">Ziua de azi</option>
                 <option value="fixed">Dată fixă</option>
+                <option value="other_tab">Din alt tab (obiectiv)</option>
               </select>
             </div>
-            <div id="goal-date-wrap" style="display:none;">
-              <div class="field-label">Data de start</div>
-              <input type="date" id="goal-start-date" onchange="recalcGoal()">
+
+            <div id="goal-date-wrap" class="goal-sub-box" style="display:none;">
+              <div>
+                <div class="field-label">Data de start</div>
+                <input type="date" id="goal-start-date" onchange="recalcGoal()">
+              </div>
+            </div>
+
+            <div id="goal-other-tab-wrap" class="goal-sub-box" style="display:none;">
+              <div>
+                <div class="field-label">Tab sursă</div>
+                <select id="goal-start-ref-scenario" onchange="recalcGoal()"></select>
+              </div>
+              <div>
+                <div class="field-label">Ce dată să folosească</div>
+                <select id="goal-start-ref-variant" onchange="recalcGoal()">
+                  <option value="tfr">Data estimată — Cu TFR</option>
+                  <option value="no_tfr">Data estimată — Fără TFR</option>
+                </select>
+              </div>
             </div>
 
             <button class="fbtn fbtn-blue fin-sensitive-action" style="width:100%;padding:13px;border-radius:16px;" onclick="saveGoal()">💾 Salvează obiectivul</button>
@@ -447,6 +486,7 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
           <div id="goal-results"></div>
         </div>
       </div>
+
 
       <div style="height:48px;"></div>
 
@@ -607,6 +647,16 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
   </div>
 </div>
 
+<div class="foverlay" id="mo-goal-detail">
+  <div class="fmodal">
+    <div class="fmodal-handle"></div>
+    <div class="fmodal-title" id="goal-detail-title">🎯 Cum s-a calculat obiectivul</div>
+    <div id="goal-detail-body"></div>
+    <div class="fmodal-actions"><button class="fbtn fbtn-ghost" onclick="closeModal('mo-goal-detail')" style="width:100%;">Închide</button></div>
+  </div>
+</div>
+
+
 <button class="fab-refresh" id="fab-refresh" onclick="handleFabRefresh()" title="Actualizează datele" aria-label="Actualizează datele">
 
 
@@ -689,7 +739,8 @@ let scenarios=[];
 let currentScenario=null;
 let wallet=[], categories=[];
 let salary={id:null,scenario_id:null,salary_monthly:0,salary_13:0,salary_14:0,bonus_new_year:0,tfr_amount:0,meal_vouchers:168};
-let goal={id:null,scenario_id:null,target_amount:0,existing_amount:0,existing_source:'manual',show_tfr:true,show_no_tfr:true,start_mode:'today',start_date:null};
+let goal={id:null,scenario_id:null,target_amount:0,existing_amount:0,existing_source:'manual',show_tfr:true,show_no_tfr:true,start_mode:'today',start_date:null,start_ref_scenario_id:null,start_ref_variant:'tfr'};
+
 
 
 
@@ -817,7 +868,8 @@ async function copyScenarioData(fromId,toId){
   const gRows=await sb.get(TBL_GOAL,`select=*&scenario_id=eq.${fromId}&limit=1`);
   if(gRows.length){
     const g=gRows[0];
-    await sb.post(TBL_GOAL,{scenario_id:toId,target_amount:g.target_amount,existing_amount:g.existing_amount,existing_source:g.existing_source,show_tfr:g.show_tfr,show_no_tfr:g.show_no_tfr,start_mode:g.start_mode,start_date:g.start_date});
+    await sb.post(TBL_GOAL,{scenario_id:toId,target_amount:g.target_amount,existing_amount:g.existing_amount,existing_source:g.existing_source,show_tfr:g.show_tfr,show_no_tfr:g.show_no_tfr,start_mode:g.start_mode,start_date:g.start_date,start_ref_scenario_id:g.start_ref_scenario_id,start_ref_variant:g.start_ref_variant});
+
 
   }
 }
@@ -867,7 +919,8 @@ async function loadAll(){
     const salRows=await sb.get(TBL_SALARY,`select=*&scenario_id=eq.${currentScenario.id}&limit=1`);
     salary=salRows.length?salRows[0]:{id:null,scenario_id:currentScenario.id,salary_monthly:0,salary_13:0,salary_14:0,bonus_new_year:0,tfr_amount:0,meal_vouchers:168};
     const goalRows=await sb.get(TBL_GOAL,`select=*&scenario_id=eq.${currentScenario.id}&limit=1`);
-    goal=goalRows.length?goalRows[0]:{id:null,scenario_id:currentScenario.id,target_amount:0,existing_amount:0,existing_source:'manual',show_tfr:true,show_no_tfr:true,start_mode:'today',start_date:null};
+    goal=goalRows.length?goalRows[0]:{id:null,scenario_id:currentScenario.id,target_amount:0,existing_amount:0,existing_source:'manual',show_tfr:true,show_no_tfr:true,start_mode:'today',start_date:null,start_ref_scenario_id:null,start_ref_variant:'tfr'};
+
 
 
   }catch(e){toast('Eroare la încărcare: '+e.message,'err');}
@@ -1371,8 +1424,20 @@ function recalcAll(){
 // ══════════════════════════════════════════════
 function toggleGoalDate(){
   const mode=document.getElementById('goal-start-mode').value;
-  document.getElementById('goal-date-wrap').style.display=mode==='fixed'?'block':'none';
+  document.getElementById('goal-date-wrap').style.display=mode==='fixed'?'flex':'none';
+  document.getElementById('goal-other-tab-wrap').style.display=mode==='other_tab'?'flex':'none';
 }
+
+
+function updateGoalToggle(which){
+  const cbId=which==='tfr'?'goal-show-tfr':'goal-show-notfr';
+  const lblId=which==='tfr'?'goal-toggle-tfr':'goal-toggle-notfr';
+  const cb=document.getElementById(cbId);
+  const lbl=document.getElementById(lblId);
+  if(cb&&lbl)lbl.classList.toggle('active',cb.checked);
+}
+
+
 
 function renderGoal(){
   document.getElementById('goal-target').value=goal.target_amount||0;
@@ -1380,11 +1445,24 @@ function renderGoal(){
   document.getElementById('goal-existing').value=goal.existing_amount||0;
   document.getElementById('goal-show-tfr').checked=goal.show_tfr!==false;
   document.getElementById('goal-show-notfr').checked=goal.show_no_tfr!==false;
+  updateGoalToggle('tfr');
+  updateGoalToggle('notfr');
   document.getElementById('goal-start-mode').value=goal.start_mode||'today';
+
   document.getElementById('goal-start-date').value=goal.start_date||'';
+
+  const refSel=document.getElementById('goal-start-ref-scenario');
+  const others=scenarios.filter(s=>String(s.id)!==String(currentScenario.id));
+  refSel.innerHTML=others.length
+    ?others.map(s=>`<option value="${s.id}">${esc(s.label)}</option>`).join('')
+    :'<option value="">— Niciun alt tab —</option>';
+  if(goal.start_ref_scenario_id)refSel.value=goal.start_ref_scenario_id;
+  document.getElementById('goal-start-ref-variant').value=goal.start_ref_variant||'tfr';
+
   toggleGoalDate();
   toggleGoalExistingSource();
 }
+
 
 function toggleGoalExistingSource(){
   const source=document.getElementById('goal-existing-source').value;
@@ -1415,8 +1493,11 @@ async function saveGoal(){
 
     show_no_tfr:document.getElementById('goal-show-notfr').checked,
     start_mode:document.getElementById('goal-start-mode').value,
-    start_date:document.getElementById('goal-start-mode').value==='fixed'?(document.getElementById('goal-start-date').value||null):null
+    start_date:document.getElementById('goal-start-mode').value==='fixed'?(document.getElementById('goal-start-date').value||null):null,
+    start_ref_scenario_id:document.getElementById('goal-start-mode').value==='other_tab'?(document.getElementById('goal-start-ref-scenario').value||null):null,
+    start_ref_variant:document.getElementById('goal-start-ref-variant').value
   };
+
   try{
     if(goal.id){await sb.patch(TBL_GOAL,goal.id,payload);Object.assign(goal,payload);}
     else{const[row]=await sb.post(TBL_GOAL,payload);goal=row;}
@@ -1437,9 +1518,88 @@ function fmtDate(d){
   return d.toLocaleDateString('ro-RO',{year:'numeric',month:'long',day:'numeric'});
 }
 
-function recalcGoal(){
+// ── Calculează motorul de venit/cheltuieli pentru orice scenariu (folosit pentru lanțul de taburi) ──
+async function fetchScenarioCalcData(scenarioId){
+  const w=await sb.get(TBL_WALLET,`select=*&scenario_id=eq.${scenarioId}`);
+  const rows=await sb.get(TBL_EXP,`select=*&scenario_id=eq.${scenarioId}`);
+  const cats=rows.filter(r=>!r.parent_id).map(c=>({...c,subcats:rows.filter(s=>String(s.parent_id)===String(c.id))}));
+  const salRows=await sb.get(TBL_SALARY,`select=*&scenario_id=eq.${scenarioId}&limit=1`);
+  const sal=salRows.length?salRows[0]:{salary_monthly:0,salary_13:0,salary_14:0,bonus_new_year:0,tfr_amount:0,meal_vouchers:168};
+  const goalRows=await sb.get(TBL_GOAL,`select=*&scenario_id=eq.${scenarioId}&limit=1`);
+  const g=goalRows.length?goalRows[0]:null;
+  return{wallet:w,categories:cats,salary:sal,goal:g};
+}
+
+function computeRemainMonthlyFor(data){
+  const{wallet:w,categories:cats,salary:sal}=data;
+  let annualDirect=0,monthlyDirect=0;
+  cats.forEach(c=>{
+    const subs=c.subcats||[];
+    const t=subs.length>0?subs.reduce((a,x)=>a+(parseFloat(x.amount)||0),0):(parseFloat(c.amount)||0);
+    if(c.tip==='annual')annualDirect+=t;else monthlyDirect+=t;
+  });
+  const monthlyAvg=monthlyDirect+(annualDirect/12);
+
+  const salMonthly=parseFloat(sal.salary_monthly)||0;
+  const sal13=parseFloat(sal.salary_13)||0;
+  const sal14=parseFloat(sal.salary_14)||0;
+  const salBonus=parseFloat(sal.bonus_new_year)||0;
+  const salTfr=parseFloat(sal.tfr_amount)||0;
+  const salTfrNetMonthly=((salTfr*14)/12)*0.83;
+  const monthlyIncomeNoTfr=salMonthly+(sal13+sal14+salBonus)/12;
+  const monthlyIncomeTfr=monthlyIncomeNoTfr+salTfrNetMonthly;
+
+  return{
+    remainMonthlyTfr:monthlyIncomeTfr-monthlyAvg,
+    remainMonthlyNoTfr:monthlyIncomeNoTfr-monthlyAvg,
+    walletTotal:w.reduce((s,x)=>s+(parseFloat(x.amount)||0),0),
+    walletTotalNoTfr:w.filter(x=>!x.is_tfr).reduce((s,x)=>s+(parseFloat(x.amount)||0),0)
+  };
+}
+
+// Calculează recursiv data estimată de finalizare a obiectivului dintr-un alt tab (cu protecție anti-buclă)
+async function computeScenarioGoalDate(scenarioId,variant,visited){
+  if(!scenarioId||visited.has(String(scenarioId)))return null;
+  visited.add(String(scenarioId));
+
+  let data;
+  try{data=await fetchScenarioCalcData(scenarioId);}catch(e){return null;}
+  const g=data.goal;
+  if(!g||!g.target_amount)return null;
+
+  const calc=computeRemainMonthlyFor(data);
+  let existing=parseFloat(g.existing_amount)||0;
+  if(g.existing_source==='wallet_tfr')existing=calc.walletTotal;
+  else if(g.existing_source==='wallet_no_tfr')existing=calc.walletTotalNoTfr;
+
+  const remaining=(parseFloat(g.target_amount)||0)-existing;
+  if(remaining<=0)return new Date();
+
+  const monthlyRemain=variant==='no_tfr'?calc.remainMonthlyNoTfr:calc.remainMonthlyTfr;
+  if(monthlyRemain<=0)return null;
+
+  const months=remaining/monthlyRemain;
+
+  let startDate;
+  if(g.start_mode==='fixed'&&g.start_date){
+    startDate=new Date(g.start_date);
+  }else if(g.start_mode==='other_tab'&&g.start_ref_scenario_id){
+    startDate=await computeScenarioGoalDate(g.start_ref_scenario_id,g.start_ref_variant||'tfr',visited);
+    if(!startDate)startDate=new Date();
+  }else{
+    startDate=new Date();
+  }
+
+  return addMonthsToDate(startDate,months);
+}
+
+let goalCalcToken=0;
+let goalCalcDetail={ready:false};
+
+async function recalcGoal(){
   const resEl=document.getElementById('goal-results');
   if(!resEl)return;
+  const myToken=++goalCalcToken;
 
   const target=parseFloat(document.getElementById('goal-target').value)||0;
   const goalSource=document.getElementById('goal-existing-source').value;
@@ -1450,43 +1610,116 @@ function recalcGoal(){
     document.getElementById('goal-existing').value=walletTotal;
   }
   const existing=parseFloat(document.getElementById('goal-existing').value)||0;
-
+  const existingSourceLabel=goalSource==='wallet_tfr'?'din portofel, cu TFR':goalSource==='wallet_no_tfr'?'din portofel, fără TFR':'introdusă manual';
 
   const remaining=target-existing;
   const showTfr=document.getElementById('goal-show-tfr').checked;
   const showNoTfr=document.getElementById('goal-show-notfr').checked;
   const startMode=document.getElementById('goal-start-mode').value;
   const startDateVal=document.getElementById('goal-start-date').value;
-  const startDate=(startMode==='fixed'&&startDateVal)?new Date(startDateVal):new Date();
+
+  let startDate,startDescription;
+  if(startMode==='fixed'&&startDateVal){
+    startDate=new Date(startDateVal);
+    startDescription=`Dată fixă aleasă manual — ${fmtDate(startDate)}`;
+  }else if(startMode==='other_tab'){
+    const refId=document.getElementById('goal-start-ref-scenario').value;
+    const refVariant=document.getElementById('goal-start-ref-variant').value==='no_tfr'?'no_tfr':'tfr';
+    const refScenario=scenarios.find(s=>String(s.id)===String(refId));
+    const refLabel=refScenario?refScenario.label:'(tab necunoscut)';
+    const variantLabel=refVariant==='no_tfr'?'Fără TFR':'Cu TFR';
+    if(refId){
+      resEl.innerHTML='<div class="empty-msg">⏳ Se calculează data sursă...</div>';
+      const computed=await computeScenarioGoalDate(refId,refVariant,new Set([String(currentScenario.id)]));
+      if(myToken!==goalCalcToken)return;
+      startDate=computed||new Date();
+      startDescription=computed
+        ?`Preluată din obiectivul tabului „${refLabel}”, varianta ${variantLabel} — ${fmtDate(startDate)}`
+        :`Nu s-a putut calcula din tabul „${refLabel}” (obiectiv lipsă sau neatins) — s-a folosit ziua de azi: ${fmtDate(startDate)}`;
+    }else{
+      startDate=new Date();
+      startDescription=`Niciun tab selectat — s-a folosit ziua de azi: ${fmtDate(startDate)}`;
+    }
+  }else{
+    startDate=new Date();
+    startDescription=`Ziua de azi — ${fmtDate(startDate)}`;
+  }
 
   const d=calcDetail;
   const monthlyTfr=d.remainMonthlyTfr||0;
   const monthlyNoTfr=d.remainMonthlyNoTfr||0;
 
-  if(target<=0){resEl.innerHTML='<div class="empty-msg">Introdu o sumă obiectiv.</div>';return;}
-  if(remaining<=0){resEl.innerHTML='<div class="empty-msg">🎉 Obiectivul este deja atins!</div>';return;}
-  if(!showTfr&&!showNoTfr){resEl.innerHTML='<div class="empty-msg">Bifează cel puțin o opțiune.</div>';return;}
+  goalCalcDetail={ready:false};
 
-  function block(label,monthlyRemain){
+  if(target<=0){if(myToken===goalCalcToken)resEl.innerHTML='<div class="empty-msg">Introdu o sumă obiectiv.</div>';return;}
+  if(remaining<=0){if(myToken===goalCalcToken)resEl.innerHTML='<div class="empty-msg">🎉 Obiectivul este deja atins!</div>';return;}
+  if(!showTfr&&!showNoTfr){if(myToken===goalCalcToken)resEl.innerHTML='<div class="empty-msg">Bifează cel puțin o opțiune.</div>';return;}
+
+  goalCalcDetail={
+    ready:true,target,existing,existingSourceLabel,remaining,
+    startDate,startDescription,monthlyTfr,monthlyNoTfr
+  };
+
+  function block(label,monthlyRemain,variantKey){
     if(monthlyRemain<=0){
       return`<div class="calc-step"><div class="calc-step-lbl">${label}</div><div class="calc-step-formula" style="color:var(--red);">Nu se poate atinge — rămas lunar ≤ 0</div></div>`;
     }
     const months=remaining/monthlyRemain;
     const my=monthsToYearsMonths(months);
     const targetDate=addMonthsToDate(startDate,months);
-    return`<div class="calc-step">
+    return`<div class="calc-step goal-result-card" onclick="openGoalDetail('${variantKey}')">
       <div class="calc-step-lbl">${label}</div>
       <div class="calc-step-formula">${n(remaining)} ÷ ${n(monthlyRemain)} = <span class="num">${months.toFixed(1)} luni</span></div>
       <div class="calc-step-formula">≈ ${my.y} ani și ${my.m} luni</div>
       <div class="calc-step-formula">📅 Estimat: <span class="num">${fmtDate(targetDate)}</span></div>
+      <div class="goal-result-hint">Atinge pentru detalii →</div>
     </div>`;
   }
 
   let html='';
-  if(showTfr)html+=block('Cu TFR',monthlyTfr);
-  if(showNoTfr)html+=block('Fără TFR',monthlyNoTfr);
-  resEl.innerHTML=html;
+  if(showTfr)html+=block('Cu TFR',monthlyTfr,'tfr');
+  if(showNoTfr)html+=block('Fără TFR',monthlyNoTfr,'no_tfr');
+  if(myToken===goalCalcToken)resEl.innerHTML=html;
 }
+
+function openGoalDetail(variant){
+  const d=goalCalcDetail;
+  if(!d||!d.ready)return;
+  const isTfr=variant==='tfr';
+  const monthlyRemain=isTfr?d.monthlyTfr:d.monthlyNoTfr;
+
+  document.getElementById('goal-detail-title').textContent=isTfr?'🎯 Obiectiv — Cu TFR':'🎯 Obiectiv — Fără TFR';
+  const body=document.getElementById('goal-detail-body');
+
+  let steps=[
+    {lbl:'1. Sumă obiectiv',f:`${n(d.target)}`},
+    {lbl:'2. Bani existenți ('+d.existingSourceLabel+')',f:`${n(d.existing)}`},
+    {lbl:'3. Rămas de strâns',f:`${n(d.target)} − ${n(d.existing)} = ${n(d.remaining)}`},
+    {lbl:'4. Data de start folosită',f:d.startDescription},
+    {lbl:'5. Rămas lunar disponibil ('+(isTfr?'Cu TFR':'Fără TFR')+')',f:`${n(monthlyRemain)}`}
+  ];
+
+  if(monthlyRemain<=0){
+    steps.push({lbl:'6. Rezultat',f:`<span style="color:var(--red);">Nu se poate atinge — rămas lunar ≤ 0</span>`});
+    body.innerHTML=steps.map(s=>`<div class="calc-step"><div class="calc-step-lbl">${s.lbl}</div><div class="calc-step-formula">${s.f}</div></div>`).join('');
+    openModal('mo-goal-detail');
+    return;
+  }
+
+  const months=d.remaining/monthlyRemain;
+  const my=monthsToYearsMonths(months);
+  const targetDate=addMonthsToDate(d.startDate,months);
+
+  steps.push({lbl:'6. Număr de luni necesare',f:`${n(d.remaining)} ÷ ${n(monthlyRemain)} = <span class="num">${months.toFixed(1)} luni</span> (≈ ${my.y} ani și ${my.m} luni)`});
+  steps.push({lbl:'7. Data estimată',f:`${fmtDate(d.startDate)} + ${Math.ceil(months)} luni = <span class="num">${fmtDate(targetDate)}</span>`});
+
+  body.innerHTML=steps.map(s=>`<div class="calc-step"><div class="calc-step-lbl">${s.lbl}</div><div class="calc-step-formula">${s.f}</div></div>`).join('')
+    +`<div class="calc-final"><div class="calc-final-lbl">Data estimată finală</div><div class="calc-final-val">${fmtDate(targetDate)}</div></div>`;
+
+  openModal('mo-goal-detail');
+}
+
+
 
 // ══════════════════════════════════════════════
 //  EXPORT CSV
