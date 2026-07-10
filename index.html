@@ -622,7 +622,9 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
       <button class="fbtn fbtn-blue" style="width:100%;padding:14px;border-radius:16px;" onclick="exportTableCSV('sim_expenses')">⬇️ sim_expenses.csv</button>
       <button class="fbtn fbtn-blue" style="width:100%;padding:14px;border-radius:16px;" onclick="exportTableCSV('sim_salary')">⬇️ sim_salary.csv</button>
       <button class="fbtn fbtn-blue" style="width:100%;padding:14px;border-radius:16px;" onclick="exportTableCSV('sim_goals')">⬇️ sim_goals.csv</button>
+      <button class="fbtn fbtn-blue" style="width:100%;padding:14px;border-radius:16px;background:linear-gradient(135deg,var(--gold),#ffe08a);color:#1a1200;" onclick="exportAllCSV()">⬇️ Toate (all.csv)</button>
     </div>
+
 
     <div class="fmodal-actions"><button class="fbtn fbtn-ghost" onclick="closeModal('mo-export')" style="width:100%;">Închide</button></div>
   </div>
@@ -1728,7 +1730,15 @@ function openGoalDetail(variant){
 // ══════════════════════════════════════════════
 
 function csvEscape(v){if(v===null||v===undefined)return'';const s=typeof v==='object'?JSON.stringify(v):String(v);if(/[",\n]/.test(s))return'"'+s.replace(/"/g,'""')+'"';return s;}
+async function exportAllCSV(){
+  const tables=['sim_scenarios','sim_wallet','sim_expenses','sim_salary','sim_goals'];
+  try{
+    for(const table of tables){await exportTableCSV(table);await new Promise(r=>setTimeout(r,300));}
+  }catch(e){toast('Eroare la exportul complet: '+e.message,'err');}
+}
+
 async function exportTableCSV(table){
+
   try{
     const rows=await sb.get(table,'select=*');
     if(!rows.length){toast('⚠️ Tabelul este gol','err');return;}
