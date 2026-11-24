@@ -312,19 +312,22 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
           <div class="section-sep">📅 Cheltuieli Anuale (o dată/an)</div>
           <div id="annual-list"></div>
           <div class="total-row">
-            <div class="total-mini-card">
+            <div class="total-mini-card rt-clickable" style="cursor:pointer;" onclick="openCalcDetail('annual-direct')">
               <div class="total-mini-lbl">Total anual direct</div>
               <div class="total-mini-val" id="annual-total">0 €</div>
             </div>
+
           </div>
           <div class="divider"></div>
           <div class="section-sep">🗓 Cheltuieli Lunare</div>
           <div id="monthly-list"></div>
           <div class="total-row">
-            <div class="total-mini-card">
+            <div class="total-mini-card rt-clickable" style="cursor:pointer;" onclick="openCalcDetail('monthly-direct')">
               <div class="total-mini-lbl">Total lunar direct</div>
               <div class="total-mini-val" id="monthly-total">0 €</div>
             </div>
+
+
           </div>
            <div class="sum-grid">
             <div class="sum-block">
@@ -621,7 +624,8 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
   <div class="fmodal">
     <div class="fmodal-handle"></div>
     <div class="fmodal-title">📦 Mută cheltuiala</div>
-    <input type="hidden" id="mv-id">
+<input type="hidden" id="mv-id"><input type="hidden" id="mv-parent">
+
     <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:14px;" id="mv-name"></div>
     <div class="fmodal-fields">
       <div><div class="field-label">Mută în tabul</div><select id="mv-target"></select></div>
@@ -1213,11 +1217,34 @@ function catTap(id){
   if(dbl)openMoveCat(id);
 }
 
+let _lastSubTap={id:null,t:0};
+function subTap(catId,subId){
+  const now=Date.now();
+  const dbl=_lastSubTap.id===String(subId)&&now-_lastSubTap.t<400;
+  _lastSubTap={id:String(subId),t:dbl?0:now};
+  if(dbl)openMoveSub(catId,subId);
+}
+function openMoveSub(catId,subId){
+  const cat=categories.find(x=>String(x.id)===String(catId));if(!cat)return;
+  const sub=(cat.subcats||[]).find(s=>String(s.id)===String(subId));if(!sub)return;
+  const targets=scenarios.filter(s=>String(s.id)!==String(currentScenario.id));
+  if(!targets.length){toast('⚠️ Nu există alte taburi','err');return;}
+  document.getElementById('mv-id').value=subId;
+  document.getElementById('mv-parent').value=catId;
+  document.getElementById('mv-name').textContent=sub.label+' · '+fmt(sub.amount);
+  document.getElementById('mv-target').innerHTML=targets.map(s=>`<option value="${s.id}">${esc(s.label)}</option>`).join('');
+  document.getElementById('mv-keep').checked=true;
+  openModal('mo-move-cat');
+}
+
+
 function openMoveCat(id){
   const c=categories.find(x=>String(x.id)===String(id));if(!c)return;
   const targets=scenarios.filter(s=>String(s.id)!==String(currentScenario.id));
   if(!targets.length){toast('⚠️ Nu există alte taburi','err');return;}
-  document.getElementById('mv-id').value=id;
+document.getElementById('mv-id').value=id;
+document.getElementById('mv-parent').value='';
+
   document.getElementById('mv-name').textContent=c.label+' · '+fmt(catTotal(c));
   document.getElementById('mv-target').innerHTML=targets.map(s=>`<option value="${s.id}">${esc(s.label)}</option>`).join('');
 document.getElementById('mv-keep').checked=true;
@@ -1227,38 +1254,69 @@ document.getElementById('mv-keep').checked=true;
 let moveInProgress=false;
 async function doMoveCat(){
   if(moveInProgress)return;
-  const id=document.getElementById('mv-id').value;
+const id=document.getElementById('mv-id').value;
+  const parentId=document.getElementById('mv-parent').value;
   const targetId=document.getElementById('mv-target').value;
   const keep=document.getElementById('mv-keep').checked;
-  const c=categories.find(x=>String(x.id)===String(id));
+  let c,parentCat=null;
+  if(parentId){
+    parentCat=categories.find(x=>String(x.id)===String(parentId));
+    const sub=parentCat?(parentCat.subcats||[]).find(s=>String(s.id)===String(id)):null;
+    c=sub?{id:sub.id,label:sub.label,amount:sub.amount,tip:parentCat.tip,subcats:[]}:null;
+  }else{
+    c=categories.find(x=>String(x.id)===String(id));
+  }
   if(!c||!targetId)return;
+
   moveInProgress=true;document.getElementById('btn-do-move').disabled=true;
   try{
 const tRows=await sb.get(TBL_EXP,`select=*&scenario_id=eq.${targetId}`);
     const norm=x=>String(x||'').trim().toLowerCase();
     const dup=tRows.filter(r=>!r.parent_id&&norm(r.label)===norm(c.label));
+    const subs=c.subcats||[];
+    let targetCat;
     if(dup.length){
-      const dupTotal=dup.map(r=>{
-        const subs=tRows.filter(s=>String(s.parent_id)===String(r.id));
-        return subs.length?subs.reduce((a,x)=>a+(parseFloat(x.amount)||0),0):(parseFloat(r.amount)||0);
+      const tName=(scenarios.find(s=>String(s.id)===String(targetId))||{}).label||'tabul ales';
+      const curTabName=(currentScenario||{}).label||'tabul curent';
+      const dupTotals=dup.map(r=>{
+        const rs=tRows.filter(s=>String(s.parent_id)===String(r.id));
+        return rs.length?rs.reduce((a,x)=>a+(parseFloat(x.amount)||0),0):(parseFloat(r.amount)||0);
       });
       const curTotal=catTotal(c);
-      const tName=(scenarios.find(s=>String(s.id)===String(targetId))||{}).label||'tabul ales';
-      const same=dupTotal.some(v=>Math.abs(v-curTotal)<0.005);
-      const msg=`⚠️ „${c.label}” există deja în ${tName}.\n\nÎn tabul țintă: ${dupTotal.map(fmt).join(', ')}\nCe adaugi acum: ${fmt(curTotal)}\n`+(same?'\n(Valoarea este identică.)\n':'\n(Valoarea este diferită.)\n')+'\nContinui și o adaugi oricum (va apărea de două ori)?';
+      const oldTotal=dupTotals[0];
+      const diff=curTotal-oldTotal;
+      const diffTxt=Math.abs(diff)<0.005?'identică':(diff>0?'+':'−')+fmt(Math.abs(diff));
+      const msg=`⚠️ „${c.label}” există deja în ${tName}.\n\n`
+        +`În ${tName} (se șterge): ${dupTotals.map(fmt).join(', ')}\n`
+        +`Din ${curTabName} (se pune): ${fmt(curTotal)}\n`
+        +`Diferență: ${diffTxt}\n\n`
+        +`Valoarea și subcategoriile existente vor fi ÎNLOCUITE. Continui?`;
       if(!confirm(msg)){moveInProgress=false;document.getElementById('btn-do-move').disabled=false;return;}
+      targetCat=dup[0];
+      // șterge subcategoriile vechi ale celei existente
+      for(const old of tRows.filter(r=>String(r.parent_id)===String(targetCat.id)))await sb.delete(TBL_EXP,old.id);
+      // dacă existau mai multe cu același nume, le elimină pe celelalte
+      for(const extra of dup.slice(1))await sb.delete(TBL_EXP,extra.id);
+      await sb.patch(TBL_EXP,targetCat.id,{label:c.label,amount:c.amount,tip:c.tip});
+    }else{
+      const[row]=await sb.post(TBL_EXP,{scenario_id:targetId,label:c.label,amount:c.amount,tip:c.tip,parent_id:null});
+      targetCat=row;
     }
-    const[newCat]=await sb.post(TBL_EXP,{scenario_id:targetId,label:c.label,amount:c.amount,tip:c.tip,parent_id:null});
 
-    const subs=c.subcats||[];
     if(subs.length){
-      await sb.post(TBL_EXP,subs.map(s=>({scenario_id:targetId,label:s.label,amount:s.amount,tip:s.tip,parent_id:newCat.id})));
+      await sb.post(TBL_EXP,subs.map(s=>({scenario_id:targetId,label:s.label,amount:s.amount,tip:s.tip,parent_id:targetCat.id})));
     }
-    if(!keep){
-      for(const s of subs)await sb.delete(TBL_EXP,s.id);
-      await sb.delete(TBL_EXP,c.id);
-      categories=categories.filter(x=>String(x.id)!==String(id));
-      openSubcatIds.delete(String(id));
+
+if(!keep){
+      if(parentCat){
+        await sb.delete(TBL_EXP,id);
+        parentCat.subcats=parentCat.subcats.filter(s=>String(s.id)!==String(id));
+      }else{
+        for(const s of subs)await sb.delete(TBL_EXP,s.id);
+        await sb.delete(TBL_EXP,c.id);
+        categories=categories.filter(x=>String(x.id)!==String(id));
+        openSubcatIds.delete(String(id));
+      }
     }
   }catch(e){
     toast('Eroare la mutare: '+e.message,'err');
@@ -1285,7 +1343,7 @@ const onClickZone=`onclick="catTap('${c.id}')"`;
     const sortedSubs=sortSubsAsc(subs);
     const subRows=sortedSubs.map(s=>{
       const editHtml=isUnlocked?`<button class="fbtn fbtn-ghost fbtn-icon fbtn-sm" onclick="openEditSubcat('${c.id}','${s.id}')">✏️</button><button class="fbtn fbtn-danger fbtn-icon fbtn-sm" onclick="deleteSubcat('${c.id}','${s.id}')">🗑</button>`:'';
-      return`<div class="sub-row"><span class="sub-lbl">${esc(s.label)}</span><span class="sub-val">${fmt(s.amount)}</span>${editHtml?`<div class="row-actions">${editHtml}</div>`:''}</div>`;
+return`<div class="sub-row" onclick="subTap('${c.id}','${s.id}')"><span class="sub-lbl">${esc(s.label)}</span><span class="sub-val">${fmt(s.amount)}</span>${editHtml?`<div class="row-actions" onclick="event.stopPropagation()">${editHtml}</div>`:''}</div>`;
     }).join('');
     const rowActions=isUnlocked?`<div class="row-actions"><button class="fbtn fbtn-ghost fbtn-icon fbtn-sm" onclick="openAddSubcat('${c.id}')">➕</button><button class="fbtn fbtn-ghost fbtn-icon fbtn-sm" onclick="openEditCat('${c.id}')">✏️</button><button class="fbtn fbtn-danger fbtn-icon fbtn-sm" onclick="deleteCat('${c.id}')">🗑</button></div>`:'';
     return`<div class="cat-item"><div class="cat-row"><div class="${zoneClass}" ${onClickZone}><span class="cat-lbl">${arrowHtml} ${esc(c.label)}</span></div><span class="cat-val">${fmt(total)}</span>${rowActions}</div><div class="subcats${isOpen?' open':''}">${subRows}</div></div>`;
@@ -1314,8 +1372,27 @@ function openCalcDetail(type){
   const body=document.getElementById('calc-detail-body');
   let steps=[],finalLbl='',finalVal=0;
 
-  if(type==='income-monthly-notfr'){
+  if(type==='annual-direct'){
+    title.textContent='📅 Total anual direct — conversie';
+    steps=[
+      {lbl:'1. Anual (suma directă)',f:`Total anual direct = ${n(d.annualDirect)}`},
+      {lbl:'2. Echivalent lunar',f:`${n(d.annualDirect)} ÷ 12 = ${n(d.annualDirect/12)} / lună`},
+      {lbl:'3. Echivalent anual',f:`${n(d.annualDirect)} / an`}
+    ];
+    finalLbl='Echivalent lunar';finalVal=d.annualDirect/12;
+  }
+  else if(type==='monthly-direct'){
+    title.textContent='🗓 Total lunar direct — conversie';
+    steps=[
+      {lbl:'1. Lunar (suma directă)',f:`Total lunar direct = ${n(d.monthlyDirect)}`},
+      {lbl:'2. Echivalent lunar',f:`${n(d.monthlyDirect)} / lună`},
+      {lbl:'3. Echivalent anual',f:`${n(d.monthlyDirect)} × 12 = ${n(d.monthlyDirect*12)} / an`}
+    ];
+    finalLbl='Echivalent anual';finalVal=d.monthlyDirect*12;
+  }
+  else if(type==='income-monthly-notfr'){
     title.textContent='💶 Salariul curat lunar — fără TFR';
+
     steps=[
       {lbl:'1. Salariul de bază',f:`Salariu net lunar = ${n(d.salMonthly)}`},
       {lbl:'2. Bonusurile anuale împărțite pe lună',f:`(Al 13-lea ${n(d.sal13)} + Al 14-lea ${n(d.sal14)} + Bonus ${n(d.salBonus)}) ÷ 12 = ${n((d.sal13+d.sal14+d.salBonus)/12)}`},
