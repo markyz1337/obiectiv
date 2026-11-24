@@ -246,7 +246,8 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
     <div class="hdr">
       <div class="hdr-inner">
         <div>
-          <h1 onclick="openModal('mo-export')" style="cursor:pointer;">Italia</h1>
+<h1 onclick="openExportModal()" style="cursor:pointer;">Italia</h1>
+
           <div class="hdr-sub">Simulator cheltuieli</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -1916,35 +1917,65 @@ async function sbFetchAll(t){
   return out;
 }
 
-async function exportAllCSV(){
-  try{
-    const data={};const keys=['_table'];
-    for(const t of ALL_TABLES){
-      data[t]=await sbFetchAll(t);
-      data[t].forEach(r=>Object.keys(r).forEach(k=>{if(!keys.includes(k))keys.push(k);}));
-    }
-    const lines=[keys.map(csvEscape).join(',')];
-    for(const t of ALL_TABLES)data[t].forEach(r=>lines.push(keys.map(k=>k==='_table'?t:csvEscape(r[k])).join(',')));
-    const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
-    const url=URL.createObjectURL(blob);
-    const d=new Date();const dateStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    const fname=`all_${dateStr}.csv`;
-    const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-    const file=new File([blob],fname,{type:'text/csv'});
-    if(isIOS&&navigator.canShare&&navigator.canShare({files:[file]})){
-      try{
-        await navigator.share({files:[file],title:fname});
-        URL.revokeObjectURL(url);toast('✅ all.csv partajat');return;
-      }catch(err){
-        if(err.name==='AbortError'){URL.revokeObjectURL(url);return;} // ai închis meniul
-        // altă eroare: continuă cu descărcarea clasică
-      }
-    }
-    const a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-    toast('✅ all.csv descărcat');
+let _exportFile=null,_exportPreparing=false;
 
-  }catch(e){toast('Eroare la exportul complet: '+e.message,'err');}
+async function buildExportFile(){
+  const data={};const keys=['_table'];
+  for(const t of ALL_TABLES){
+    data[t]=await sbFetchAll(t);
+    data[t].forEach(r=>Object.keys(r).forEach(k=>{if(!keys.includes(k))keys.push(k);}));
+  }
+  const lines=[keys.map(csvEscape).join(',')];
+  for(const t of ALL_TABLES)data[t].forEach(r=>lines.push(keys.map(k=>k==='_table'?t:csvEscape(r[k])).join(',')));
+  const d=new Date();const dateStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return new File(['\uFEFF'+lines.join('\n')],`all_${dateStr}.csv`,{type:'text/csv'});
 }
+
+async function openExportModal(){
+  openModal('mo-export');
+  _exportFile=null;_exportPreparing=true;
+  try{
+    _exportFile=await buildExportFile();
+    toast('✅ Fișier pregătit');
+  }catch(e){toast('Eroare la pregătirea exportului: '+e.message,'err');}
+  _exportPreparing=false;
+}
+
+function downloadExportFile(file){
+  const url=URL.createObjectURL(file);
+  const a=document.createElement('a');a.href=url;a.download=file.name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  toast('✅ all.csv descărcat');
+}
+
+function exportAllCSV(){
+  const file=_exportFile;
+  if(!file){toast(_exportPreparing?'Se pregateste fisierul, mai incearca intr-o secunda':'Fisier indisponibil, redeschide meniul','err');return;}
+  if(navigator.share){
+    let shareData={files:[file]};
+    let ok=false;
+    try{ok=navigator.canShare?navigator.canShare(shareData):true;}catch(e){ok=false;}
+    if(!ok){
+      const alt=new File([file],file.name,{type:'text/plain'});
+      shareData={files:[alt]};
+      try{ok=navigator.canShare?navigator.canShare(shareData):true;}catch(e){ok=false;}
+    }
+    if(ok){
+      navigator.share(shareData)
+        .then(()=>toast('all.csv partajat'))
+        .catch(err=>{
+          if(err&&err.name==='AbortError')return;
+          toast('Share esuat: '+(err&&err.name?err.name:'necunoscut'),'err');
+          downloadExportFile(file);
+        });
+      return;
+    }
+  }
+  downloadExportFile(file);
+}
+
+
 
 // ── IMPORT ──
 function parseCSV(text){
