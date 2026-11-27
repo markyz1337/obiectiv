@@ -186,6 +186,17 @@ input[type="date"]{color-scheme:dark;}
 .total-mini-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:rgba(245,200,66,0.5);}
 .total-mini-val{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--gold);}
 .divider{height:1px;background:rgba(255,255,255,0.045);margin:12px 0;}
+.is-off{opacity:.6;}
+.is-off .cat-lbl,.is-off .sub-lbl,.is-off .cat-val,.is-off .sub-val{text-decoration:line-through;}
+.row-menu{position:fixed;bottom:20px;left:calc(50% - 218px);z-index:150;max-width:calc(100% - 90px);display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:22px;background:rgba(13,21,48,0.96);border:1px solid rgba(79,142,247,0.3);backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,.6);transform:translateY(120px);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.16,1,.3,1),opacity .25s;}
+@media(max-width:460px){.row-menu{left:16px;}}
+.row-menu.show{transform:translateY(0);opacity:1;pointer-events:auto;}
+.rm-title{font-size:11px;font-weight:700;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px;}
+.rm-btns{display:flex;gap:8px;}
+.rm-btn{width:42px;height:34px;border-radius:50px;border:1px solid rgba(255,255,255,0.09);background:rgba(255,255,255,0.05);color:var(--txt);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,background .15s;}
+.rm-btn:active{transform:scale(0.9);background:rgba(79,142,247,0.18);}
+.rm-btn.danger{background:rgba(252,99,99,0.1);border-color:rgba(252,99,99,0.25);}
+.row-more{font-size:14px;font-weight:800;letter-spacing:1px;}
 .sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
 .sum-block{background:rgba(255,255,255,0.028);border:1px solid rgba(255,255,255,0.045);border-radius:16px;padding:14px 12px;text-align:center;}
 .s-lbl{font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:8px;}
@@ -682,6 +693,7 @@ body.fin-unlocked .fin-sensitive-inline{display:inline-flex !important;}
 </div>
 
 
+<div class="row-menu" id="row-menu"></div>
 <div class="ftoast" id="toast"></div>
 
 <button class="fab-refresh" id="fab-refresh" onclick="handleFabRefresh()" title="Actualizează datele" aria-label="Actualizează datele">
@@ -886,9 +898,9 @@ async function copyScenarioData(fromId,toId){
   const cats=exp.filter(e=>!e.parent_id);
   const subs=exp.filter(e=>e.parent_id);
   for(const c of cats){
-    const[newCat]=await sb.post(TBL_EXP,{scenario_id:toId,label:c.label,amount:c.amount,tip:c.tip,parent_id:null});
+    const[newCat]=await sb.post(TBL_EXP,{scenario_id:toId,label:c.label,amount:c.amount,tip:c.tip,active:c.active!==false,parent_id:null});
     const childSubs=subs.filter(s=>String(s.parent_id)===String(c.id));
-    for(const s of childSubs){await sb.post(TBL_EXP,{scenario_id:toId,label:s.label,amount:s.amount,tip:s.tip,parent_id:newCat.id});}
+    for(const s of childSubs){await sb.post(TBL_EXP,{scenario_id:toId,label:s.label,amount:s.amount,tip:s.tip,active:s.active!==false,parent_id:newCat.id});}
   }
 
   const sal=await sb.get(TBL_SALARY,`select=*&scenario_id=eq.${fromId}&limit=1`);
@@ -1133,8 +1145,26 @@ async function doTransfer(){
 //  CHELTUIELI — categorii + subcategorii
 // ══════════════════════════════════════════════
 
-function catTotal(c){const s=c.subcats||[];if(s.length>0)return s.reduce((a,x)=>a+(parseFloat(x.amount)||0),0);return parseFloat(c.amount)||0;}
-function sortCatsAsc(arr){return[...arr].sort((a,b)=>catTotal(a)-catTotal(b));}
+function isOn(x){return x.active!==false;}
+function catTotal(c,raw){
+  if(!raw&&!isOn(c))return 0;
+  const s=c.subcats||[];
+  if(s.length>0)return s.filter(x=>raw||isOn(x)).reduce((a,x)=>a+(parseFloat(x.amount)||0),0);
+  return parseFloat(c.amount)||0;
+}
+function catShown(c){return catTotal(c,!isOn(c));}
+function sortCatsAsc(arr){return[...arr].sort((a,b)=>catShown(a)-catShown(b));}
+
+async function toggleActive(id,parentId){
+  let item;
+  if(parentId){const p=categories.find(x=>String(x.id)===String(parentId));item=p?(p.subcats||[]).find(s=>String(s.id)===String(id)):null;}
+  else item=categories.find(x=>String(x.id)===String(id));
+  if(!item)return;
+  const val=!isOn(item);
+  try{await sb.patch(TBL_EXP,id,{active:val});item.active=val;}
+  catch(e){toast('Eroare: '+e.message,'err');return;}
+  renderExpenses();recalcAll();toast(val?'✅ Activat':'🚫 Dezactivat');
+}
 function sortSubsAsc(arr){return[...arr].sort((a,b)=>(parseFloat(a.amount)||0)-(parseFloat(b.amount)||0));}
 
 async function saveCat(){
@@ -1262,7 +1292,7 @@ const id=document.getElementById('mv-id').value;
   if(parentId){
     parentCat=categories.find(x=>String(x.id)===String(parentId));
     const sub=parentCat?(parentCat.subcats||[]).find(s=>String(s.id)===String(id)):null;
-    c=sub?{id:sub.id,label:sub.label,amount:sub.amount,tip:parentCat.tip,subcats:[]}:null;
+    c=sub?{id:sub.id,label:sub.label,amount:sub.amount,tip:parentCat.tip,active:sub.active,subcats:[]}:null;
   }else{
     c=categories.find(x=>String(x.id)===String(id));
   }
@@ -1297,14 +1327,14 @@ const tRows=await sb.get(TBL_EXP,`select=*&scenario_id=eq.${targetId}`);
       for(const old of tRows.filter(r=>String(r.parent_id)===String(targetCat.id)))await sb.delete(TBL_EXP,old.id);
       // dacă existau mai multe cu același nume, le elimină pe celelalte
       for(const extra of dup.slice(1))await sb.delete(TBL_EXP,extra.id);
-      await sb.patch(TBL_EXP,targetCat.id,{label:c.label,amount:c.amount,tip:c.tip});
+      await sb.patch(TBL_EXP,targetCat.id,{label:c.label,amount:c.amount,tip:c.tip,active:c.active!==false});
     }else{
-      const[row]=await sb.post(TBL_EXP,{scenario_id:targetId,label:c.label,amount:c.amount,tip:c.tip,parent_id:null});
+      const[row]=await sb.post(TBL_EXP,{scenario_id:targetId,label:c.label,amount:c.amount,tip:c.tip,active:c.active!==false,parent_id:null});
       targetCat=row;
     }
 
     if(subs.length){
-      await sb.post(TBL_EXP,subs.map(s=>({scenario_id:targetId,label:s.label,amount:s.amount,tip:s.tip,parent_id:targetCat.id})));
+      await sb.post(TBL_EXP,subs.map(s=>({scenario_id:targetId,label:s.label,amount:s.amount,tip:s.tip,active:s.active!==false,parent_id:targetCat.id})));
     }
 
 if(!keep){
@@ -1328,12 +1358,47 @@ if(!keep){
   toast(keep?'✅ Copiat în alt tab':'✅ Mutat în alt tab');
 }
 
+let rowMenu=null;
+function openRowMenu(catId,subId){
+  rowMenu={catId:String(catId),subId:subId?String(subId):null};
+  renderRowMenu();
+}
+function closeRowMenu(){
+  rowMenu=null;
+  const el=document.getElementById('row-menu');
+  if(el)el.classList.remove('show');
+}
+function renderRowMenu(){
+  const el=document.getElementById('row-menu');
+  if(!rowMenu||!el)return;
+  const c=categories.find(x=>String(x.id)===rowMenu.catId);
+  if(!c){closeRowMenu();return;}
+  const s=rowMenu.subId?(c.subcats||[]).find(x=>String(x.id)===rowMenu.subId):null;
+  if(rowMenu.subId&&!s){closeRowMenu();return;}
+  const item=s||c;
+  const toggleIcon=isOn(item)?'🚫':'👁';
+  const addBtn=s?'':`<button class="rm-btn" onclick="rowMenuAct('add')" title="Subcategorie">➕</button>`;
+  el.innerHTML=`<div class="rm-title">${esc(item.label)}</div><div class="rm-btns"><button class="rm-btn" onclick="rowMenuAct('toggle')" title="Activează / dezactivează">${toggleIcon}</button>${addBtn}<button class="rm-btn" onclick="rowMenuAct('edit')" title="Editează">✏️</button><button class="rm-btn danger" onclick="rowMenuAct('del')" title="Șterge">🗑</button></div>`;
+  el.classList.add('show');
+}
+function rowMenuAct(act){
+  const m=rowMenu;closeRowMenu();if(!m)return;
+  if(act==='toggle'){if(m.subId)toggleActive(m.subId,m.catId);else toggleActive(m.catId);}
+  else if(act==='add')openAddSubcat(m.catId);
+  else if(act==='edit'){if(m.subId)openEditSubcat(m.catId,m.subId);else openEditCat(m.catId);}
+  else if(act==='del'){if(m.subId)deleteSubcat(m.catId,m.subId);else deleteCat(m.catId);}
+}
+document.addEventListener('click',e=>{
+  if(rowMenu&&!e.target.closest('#row-menu')&&!e.target.closest('.row-more'))closeRowMenu();
+});
+
 function renderExpenses(){
+  if(rowMenu&&!isUnlocked)closeRowMenu();
   const annualEl=document.getElementById('annual-list');const monthlyEl=document.getElementById('monthly-list');
   const annuals=sortCatsAsc(categories.filter(c=>c.tip==='annual'));
   const monthlies=sortCatsAsc(categories.filter(c=>c.tip==='monthly'));
   const mapper=(c)=>{
-    const subs=c.subcats||[];const hasSubs=subs.length>0;const total=catTotal(c);const isOpen=openSubcatIds.has(String(c.id));
+    const subs=c.subcats||[];const hasSubs=subs.length>0;const catOff=!isOn(c);const total=catShown(c);const isOpen=openSubcatIds.has(String(c.id));
 const arrowHtml=hasSubs?`<span class="arrow-badge${isOpen?' open':''}"><span class="ic"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 5l10 7-10 7V5z" fill="currentColor"/></svg></span></span>`:'';
 
 
@@ -1342,14 +1407,15 @@ const onClickZone=`onclick="catTap('${c.id}')"`;
     const zoneClass='cat-clickable-zone'+(hasSubs?' has-subcats':'');
     const sortedSubs=sortSubsAsc(subs);
     const subRows=sortedSubs.map(s=>{
-      const editHtml=isUnlocked?`<button class="fbtn fbtn-ghost fbtn-icon fbtn-sm" onclick="openEditSubcat('${c.id}','${s.id}')">✏️</button><button class="fbtn fbtn-danger fbtn-icon fbtn-sm" onclick="deleteSubcat('${c.id}','${s.id}')">🗑</button>`:'';
-return`<div class="sub-row" onclick="subTap('${c.id}','${s.id}')"><span class="sub-lbl">${esc(s.label)}</span><span class="sub-val rt-clickable" style="cursor:pointer;padding:4px 6px;" onclick="event.stopPropagation();openSubCalc('${c.id}','${s.id}')">${fmt(s.amount)}</span>${editHtml?`<div class="row-actions" onclick="event.stopPropagation()">${editHtml}</div>`:''}</div>`;
+      const editHtml=isUnlocked?`<button class="fbtn fbtn-ghost fbtn-icon fbtn-sm row-more" onclick="openRowMenu('${c.id}','${s.id}')">⋯</button>`:'';
+      return`<div class="sub-row${(catOff||!isOn(s))?' is-off':''}" onclick="subTap('${c.id}','${s.id}')"><span class="sub-lbl">${esc(s.label)}</span><span class="sub-val rt-clickable" style="cursor:pointer;padding:4px 6px;" onclick="event.stopPropagation();openSubCalc('${c.id}','${s.id}')">${fmt(s.amount)}</span>${editHtml?`<div class="row-actions" onclick="event.stopPropagation()">${editHtml}</div>`:''}</div>`;
     }).join('');
-    const rowActions=isUnlocked?`<div class="row-actions"><button class="fbtn fbtn-ghost fbtn-icon fbtn-sm" onclick="openAddSubcat('${c.id}')">➕</button><button class="fbtn fbtn-ghost fbtn-icon fbtn-sm" onclick="openEditCat('${c.id}')">✏️</button><button class="fbtn fbtn-danger fbtn-icon fbtn-sm" onclick="deleteCat('${c.id}')">🗑</button></div>`:'';
-    return`<div class="cat-item"><div class="cat-row"><div class="${zoneClass}" ${onClickZone}><span class="cat-lbl">${arrowHtml} ${esc(c.label)}</span></div><span class="cat-val rt-clickable" style="cursor:pointer;padding:4px 6px;" onclick="event.stopPropagation();openCatCalc('${c.id}')">${fmt(total)}</span>${rowActions}</div><div class="subcats${isOpen?' open':''}">${subRows}</div></div>`;
+    const rowActions=isUnlocked?`<div class="row-actions"><button class="fbtn fbtn-ghost fbtn-icon fbtn-sm row-more" onclick="openRowMenu('${c.id}')">⋯</button></div>`:'';
+    return`<div class="cat-item${catOff?' is-off':''}"><div class="cat-row"><div class="${zoneClass}" ${onClickZone}><span class="cat-lbl">${arrowHtml} ${esc(c.label)}</span></div><span class="cat-val rt-clickable" style="cursor:pointer;padding:4px 6px;" onclick="event.stopPropagation();openCatCalc('${c.id}')">${fmt(total)}</span>${rowActions}</div><div class="subcats${isOpen?' open':''}">${subRows}</div></div>`;
   };
   annualEl.innerHTML=annuals.length?annuals.map(mapper).join(''):'<div class="empty-msg">Nicio cheltuială anuală.</div>';
   monthlyEl.innerHTML=monthlies.length?monthlies.map(mapper).join(''):'<div class="empty-msg">Nicio cheltuială lunară.</div>';
+  if(rowMenu)renderRowMenu();
 }
 
 // ══════════════════════════════════════════════
@@ -1394,7 +1460,7 @@ function openExpenseCalc(label,amount,tip){
 }
 function openCatCalc(id){
   const c=categories.find(x=>String(x.id)===String(id));if(!c)return;
-  openExpenseCalc(c.label,catTotal(c),c.tip);
+  openExpenseCalc(c.label,catShown(c),c.tip);
 }
 function openSubCalc(catId,subId){
   const c=categories.find(x=>String(x.id)===String(catId));if(!c)return;
@@ -1745,8 +1811,7 @@ function computeRemainMonthlyFor(data){
   const{wallet:w,categories:cats,salary:sal}=data;
   let annualDirect=0,monthlyDirect=0;
   cats.forEach(c=>{
-    const subs=c.subcats||[];
-    const t=subs.length>0?subs.reduce((a,x)=>a+(parseFloat(x.amount)||0),0):(parseFloat(c.amount)||0);
+    const t=catTotal(c);
     if(c.tip==='annual')annualDirect+=t;else monthlyDirect+=t;
   });
   const monthlyAvg=monthlyDirect+(annualDirect/12);
@@ -1960,6 +2025,7 @@ create table if not exists sim_expenses(
   label text,
   amount numeric default 0,
   tip text default 'monthly',
+  active boolean default true,
   parent_id uuid references sim_expenses(id) on delete cascade,
   created_at timestamptz not null default now()
 );
