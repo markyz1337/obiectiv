@@ -1343,10 +1343,10 @@ const onClickZone=`onclick="catTap('${c.id}')"`;
     const sortedSubs=sortSubsAsc(subs);
     const subRows=sortedSubs.map(s=>{
       const editHtml=isUnlocked?`<button class="fbtn fbtn-ghost fbtn-icon fbtn-sm" onclick="openEditSubcat('${c.id}','${s.id}')">✏️</button><button class="fbtn fbtn-danger fbtn-icon fbtn-sm" onclick="deleteSubcat('${c.id}','${s.id}')">🗑</button>`:'';
-return`<div class="sub-row" onclick="subTap('${c.id}','${s.id}')"><span class="sub-lbl">${esc(s.label)}</span><span class="sub-val">${fmt(s.amount)}</span>${editHtml?`<div class="row-actions" onclick="event.stopPropagation()">${editHtml}</div>`:''}</div>`;
+return`<div class="sub-row" onclick="subTap('${c.id}','${s.id}')"><span class="sub-lbl">${esc(s.label)}</span><span class="sub-val rt-clickable" style="cursor:pointer;padding:4px 6px;" onclick="event.stopPropagation();openSubCalc('${c.id}','${s.id}')">${fmt(s.amount)}</span>${editHtml?`<div class="row-actions" onclick="event.stopPropagation()">${editHtml}</div>`:''}</div>`;
     }).join('');
     const rowActions=isUnlocked?`<div class="row-actions"><button class="fbtn fbtn-ghost fbtn-icon fbtn-sm" onclick="openAddSubcat('${c.id}')">➕</button><button class="fbtn fbtn-ghost fbtn-icon fbtn-sm" onclick="openEditCat('${c.id}')">✏️</button><button class="fbtn fbtn-danger fbtn-icon fbtn-sm" onclick="deleteCat('${c.id}')">🗑</button></div>`:'';
-    return`<div class="cat-item"><div class="cat-row"><div class="${zoneClass}" ${onClickZone}><span class="cat-lbl">${arrowHtml} ${esc(c.label)}</span></div><span class="cat-val">${fmt(total)}</span>${rowActions}</div><div class="subcats${isOpen?' open':''}">${subRows}</div></div>`;
+    return`<div class="cat-item"><div class="cat-row"><div class="${zoneClass}" ${onClickZone}><span class="cat-lbl">${arrowHtml} ${esc(c.label)}</span></div><span class="cat-val rt-clickable" style="cursor:pointer;padding:4px 6px;" onclick="event.stopPropagation();openCatCalc('${c.id}')">${fmt(total)}</span>${rowActions}</div><div class="subcats${isOpen?' open':''}">${subRows}</div></div>`;
   };
   annualEl.innerHTML=annuals.length?annuals.map(mapper).join(''):'<div class="empty-msg">Nicio cheltuială anuală.</div>';
   monthlyEl.innerHTML=monthlies.length?monthlies.map(mapper).join(''):'<div class="empty-msg">Nicio cheltuială lunară.</div>';
@@ -1365,6 +1365,42 @@ function setRemainEl(id,val){
 let calcDetail={};
 
 function n(v){return`<span class="num">${fmt(v)}</span>`;}
+
+function openExpenseCalc(label,amount,tip){
+  const title=document.getElementById('calc-detail-title');
+  const body=document.getElementById('calc-detail-body');
+  const a=parseFloat(amount)||0;
+  let steps,finalLbl,finalVal;
+  if(tip==='annual'){
+    title.textContent='📅 '+label+' — conversie';
+    steps=[
+      {lbl:'1. Anual (suma directă)',f:`${label} = ${n(a)} / an`},
+      {lbl:'2. Echivalent lunar',f:`${n(a)} ÷ 12 = ${n(a/12)} / lună`},
+      {lbl:'3. Echivalent anual',f:`${n(a)} / an`}
+    ];
+    finalLbl='Echivalent lunar';finalVal=a/12;
+  }else{
+    title.textContent='🗓 '+label+' — conversie';
+    steps=[
+      {lbl:'1. Lunar (suma directă)',f:`${label} = ${n(a)} / lună`},
+      {lbl:'2. Echivalent lunar',f:`${n(a)} / lună`},
+      {lbl:'3. Echivalent anual',f:`${n(a)} × 12 = ${n(a*12)} / an`}
+    ];
+    finalLbl='Echivalent anual';finalVal=a*12;
+  }
+  body.innerHTML=steps.map(s=>`<div class="calc-step"><div class="calc-step-lbl">${s.lbl}</div><div class="calc-step-formula">${s.f}</div></div>`).join('')
+    +`<div class="calc-final"><div class="calc-final-lbl">${finalLbl}</div><div class="calc-final-val">${fmt(finalVal)}</div></div>`;
+  openModal('mo-calc-detail');
+}
+function openCatCalc(id){
+  const c=categories.find(x=>String(x.id)===String(id));if(!c)return;
+  openExpenseCalc(c.label,catTotal(c),c.tip);
+}
+function openSubCalc(catId,subId){
+  const c=categories.find(x=>String(x.id)===String(catId));if(!c)return;
+  const s=(c.subcats||[]).find(x=>String(x.id)===String(subId));if(!s)return;
+  openExpenseCalc(s.label,s.amount,c.tip);
+}
 
 function openCalcDetail(type){
   const d=calcDetail;
